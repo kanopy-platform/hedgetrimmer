@@ -1,0 +1,120 @@
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: hedgetrimmer-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: hedgetrimmer
+spec:
+  secretName: hedgetrimmer
+  dnsNames:
+    - hedgetrimmer.devops.svc
+    - hedgetrimmer.devops.svc.cluster.local
+  issuerRef:
+    name: hedgetrimmer-selfsigned
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hedgetrimmer
+  labels:
+    app: hedgetrimmer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hedgetrimmer
+  template:
+    metadata:
+      labels:
+        app: hedgetrimmer
+    spec:
+      containers:
+        - name: hedgetrimmer
+          image: registry.example.com/hedgetrimmer:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          ports:
+            - containerPort: 80
+              name: metrics
+            - containerPort: 8443
+              name: webhooks
+            - containerPort: 8080
+              name: probes
+      serviceAccountName: hedgetrimmer
+
+---   
+apiVersion: v1
+kind: Service
+metadata:
+  name: hedgetrimmer
+  labels:
+    app: hedgetrimmer
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    name: metrics   
+  - port: 8443
+    targetPort: 8443
+    name: webhooks
+  selector:
+    app: hedgetrimmer
+
+---   
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hedgetrimmer
+  labels:
+    app: hedgetrimmer
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: hedgetrimmer
+  annotations:
+    cert-manager.io/inject-ca-from: devops/hedgetrimmer
+webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: hedgetrimmer
+      path: /mutate
+      port: 8443
+      namespace: "devops"
+  sideEffects: None
+  admissionReviewVersions: ["v1beta1"]
+  failurePolicy: Ignore
+  name: v1beta1.kanopy-platform.github.io
+  reinvocationPolicy: IfNeeded
+  rules:
+  - apiGroups:
+    - apps
+    apiVersions:
+    - "*"
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - deployments
+    scope: "Namespaced"
