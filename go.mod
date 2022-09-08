@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spf13/cobra v1.4.0
-	github.com/spf13/viper v1.10.0
+	github.com/spf13/cobra v1.5.0
+	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.23.0
 	k8s.io/apimachinery v0.25.0
@@ -56,6 +56,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/onsi/gomega v1.20.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
