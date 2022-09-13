@@ -27,3 +27,20 @@ func TestDefaultHandler_InjectDecoder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, h.InjectDecoder(decoder))
 }
+
+func TestDefaultHandler_PatchResponse_ErrorsOnNil(t *testing.T) {
+	h := &DefaultHandler{}
+	resp := h.PatchResponse([]byte{}, "not json")
+	assert.Equal(t, false, resp.Allowed)
+}
+
+func TestDefaultHandler_PatchResponse_OK(t *testing.T) {
+	h := &DefaultHandler{}
+	d := struct {
+		Hello string
+	}{
+		Hello: "world",
+	}
+	resp := h.PatchResponse([]byte("{}"), &d)
+	assert.Equal(t, true, resp.Allowed)
+}

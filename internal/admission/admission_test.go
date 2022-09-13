@@ -163,12 +163,7 @@ func (d *MockDeploymentHandler) Handle(ctx context.Context, req admission.Reques
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	pjson, err := json.Marshal(d.mutate(deployment))
-	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
-	}
-
-	return admission.PatchResponseFromRaw(req.Object.Raw, pjson)
+	return d.PatchResponse(req.Object.Raw, d.mutate(deployment))
 }
 
 func (d *MockDeploymentHandler) mutate(dp *appsv1.Deployment) *appsv1.Deployment {
@@ -196,12 +191,7 @@ func (r *MockReplicaSetHandler) Handle(ctx context.Context, req admission.Reques
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	pjson, err := json.Marshal(r.mutate(rs))
-	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
-	}
-
-	return admission.PatchResponseFromRaw(req.Object.Raw, pjson)
+	return r.PatchResponse(req.Object.Raw, r.mutate(rs))
 }
 
 func (r *MockReplicaSetHandler) mutate(rs *appsv1.ReplicaSet) *appsv1.ReplicaSet {

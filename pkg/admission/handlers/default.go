@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -26,4 +27,13 @@ func (dh *DefaultHandler) InjectDecoder(d *admission.Decoder) error {
 	}
 	dh.Decoder = d
 	return nil
+}
+
+func (dh *DefaultHandler) PatchResponse(raw []byte, v interface{}) admission.Response {
+	pjson, err := json.Marshal(v)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	return admission.PatchResponseFromRaw(raw, pjson)
 }
