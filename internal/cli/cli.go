@@ -6,6 +6,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
+	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
 
 	"github.com/spf13/cobra"
@@ -104,7 +105,12 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO add mutation handler
+	admissionRouter, err := admission.NewRouter()
+	if err != nil {
+		return err
+	}
+
+	admissionRouter.SetupWithManager(mgr)
 
 	return mgr.Start(ctx)
 }
