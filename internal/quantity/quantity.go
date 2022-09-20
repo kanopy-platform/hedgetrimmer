@@ -3,6 +3,7 @@ package quantity
 import (
 	"fmt"
 
+	"gopkg.in/inf.v0"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -35,7 +36,19 @@ func MulFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
 	return Mul(x, yQuantity), nil
 }
 
+func Div(x resource.Quantity, y resource.Quantity) resource.Quantity {
+	result := resource.Quantity{}
+	result.Format = x.Format
+
+	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), 0, inf.RoundUp)
+	return result
+}
+
 func DivFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
-	yInverse := 1 / y
-	return MulFloat64(x, yInverse)
+	yQuantity, err := resource.ParseQuantity(fmt.Sprintf("%v", y))
+	if err != nil {
+		return x, err
+	}
+
+	return Div(x, yQuantity), nil
 }
