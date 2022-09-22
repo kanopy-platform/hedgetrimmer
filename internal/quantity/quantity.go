@@ -40,7 +40,7 @@ func Div(x resource.Quantity, y resource.Quantity) resource.Quantity {
 	result := resource.Quantity{}
 	result.Format = x.Format
 
-	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), 0, inf.RoundUp)
+	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), 6, inf.RoundUp)
 	return result
 }
 
@@ -51,4 +51,31 @@ func DivFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
 	}
 
 	return Div(x, yQuantity), nil
+}
+
+func Min(x resource.Quantity, y resource.Quantity) resource.Quantity {
+	xCopy := x.DeepCopy()
+	yCopy := y.DeepCopy()
+
+	if xCopy.Cmp(yCopy) == -1 {
+		return xCopy
+	}
+
+	return yCopy
+}
+
+func Max(x resource.Quantity, y resource.Quantity) resource.Quantity {
+	xCopy := x.DeepCopy()
+	yCopy := y.DeepCopy()
+
+	if xCopy.Cmp(yCopy) == -1 {
+		return yCopy
+	}
+
+	return xCopy
+}
+
+// convenience function for testing only
+func Ptr(q resource.Quantity) *resource.Quantity {
+	return &q
 }
