@@ -8,12 +8,12 @@ func IsLimitRangeTypeContainer(lri corev1.LimitRangeItem) bool {
 	return lri.Type == corev1.LimitTypeContainer
 }
 
-func GetMemoryConfig(lri corev1.LimitRangeItem) MemoryConfig {
-	l := MemoryConfig{}
+func GetConfig(lri corev1.LimitRangeItem, resource corev1.ResourceName) Config {
+	l := Config{}
 
-	l.DefaultMemoryRequest, l.HasDefaultMemoryRequest = lri.DefaultRequest[corev1.ResourceMemory]
-	l.DefaultMemoryLimit, l.HasDefaultMemoryLimit = lri.Default[corev1.ResourceMemory]
-	l.MaxLimitRequestMemoryRatio, l.HasMaxLimitRequestMemoryRatio = lri.MaxLimitRequestRatio[corev1.ResourceMemory]
+	l.DefaultRequest, l.HasDefaultRequest = lri.DefaultRequest[resource]
+	l.DefaultLimit, l.HasDefaultLimit = lri.Default[resource]
+	l.MaxLimitRequestRatio, l.HasMaxLimitRequestRatio = lri.MaxLimitRequestRatio[resource]
 
 	return l
 }

@@ -38,7 +38,7 @@ func TestGetMemoryConfig(t *testing.T) {
 
 	tests := []struct {
 		limitRange corev1.LimitRangeItem
-		want       MemoryConfig
+		want       Config
 		msg        string
 	}{
 		{
@@ -53,13 +53,13 @@ func TestGetMemoryConfig(t *testing.T) {
 					corev1.ResourceMemory: resource.MustParse("1.5"),
 				},
 			},
-			want: MemoryConfig{
-				HasDefaultMemoryRequest:       true,
-				HasDefaultMemoryLimit:         true,
-				HasMaxLimitRequestMemoryRatio: true,
-				DefaultMemoryRequest:          resource.MustParse("1Gi"),
-				DefaultMemoryLimit:            resource.MustParse("2Gi"),
-				MaxLimitRequestMemoryRatio:    resource.MustParse("1.5"),
+			want: Config{
+				HasDefaultRequest:       true,
+				HasDefaultLimit:         true,
+				HasMaxLimitRequestRatio: true,
+				DefaultRequest:          resource.MustParse("1Gi"),
+				DefaultLimit:            resource.MustParse("2Gi"),
+				MaxLimitRequestRatio:    resource.MustParse("1.5"),
 			},
 			msg: "Memory resource request, limit, and ratio exists",
 		},
@@ -73,16 +73,16 @@ func TestGetMemoryConfig(t *testing.T) {
 				},
 				MaxLimitRequestRatio: corev1.ResourceList{},
 			},
-			want: MemoryConfig{
-				HasDefaultMemoryRequest:       false,
-				HasDefaultMemoryLimit:         false,
-				HasMaxLimitRequestMemoryRatio: false,
+			want: Config{
+				HasDefaultRequest:       false,
+				HasDefaultLimit:         false,
+				HasMaxLimitRequestRatio: false,
 			},
 			msg: "Memory resource request, limit, and ratio does not exist",
 		},
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.want, GetMemoryConfig(test.limitRange), test.msg)
+		assert.Equal(t, test.want, GetConfig(test.limitRange, corev1.ResourceMemory), test.msg)
 	}
 }

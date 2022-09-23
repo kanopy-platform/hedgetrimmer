@@ -125,50 +125,50 @@ func TestApplyResourceRequirements(t *testing.T) {
 func TestValidateMemoryRatio(t *testing.T) {
 	t.Parallel()
 
-	config := limitrange.MemoryConfig{
-		HasMaxLimitRequestMemoryRatio: true,
-		MaxLimitRequestMemoryRatio:    resource.MustParse("1.25"),
+	memoryConfig := limitrange.Config{
+		HasMaxLimitRequestRatio: true,
+		MaxLimitRequestRatio:    resource.MustParse("1.25"),
 	}
 
 	tests := []struct {
 		requests  corev1.ResourceList
 		limits    corev1.ResourceList
-		mc        limitrange.MemoryConfig
+		mc        limitrange.Config
 		wantError bool
 		msg       string
 	}{
 		{
 			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.25Gi")},
-			mc:        config,
+			mc:        memoryConfig,
 			wantError: false,
 			msg:       "Memory limit/request ratio equals max ratio, allow",
 		},
 		{
 			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
-			mc:        config,
+			mc:        memoryConfig,
 			wantError: true,
 			msg:       "Memory limit/request ratio exceeds max ratio, error",
 		},
 		{
 			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
-			mc:        limitrange.MemoryConfig{HasMaxLimitRequestMemoryRatio: false},
+			mc:        limitrange.Config{HasMaxLimitRequestRatio: false},
 			wantError: false,
 			msg:       "LimitRange does not specify max ratio, no ratio check",
 		},
 		{
 			requests:  corev1.ResourceList{},
 			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
-			mc:        config,
+			mc:        memoryConfig,
 			wantError: true,
 			msg:       "Memory request does not exist, error",
 		},
 		{
 			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 			limits:    corev1.ResourceList{},
-			mc:        config,
+			mc:        memoryConfig,
 			wantError: true,
 			msg:       "Memory limit does not exist, error",
 		},
@@ -194,33 +194,33 @@ func TestValidateMemoryRatio(t *testing.T) {
 func TestSetMemoryRequest(t *testing.T) {
 	t.Parallel()
 
-	config := limitrange.MemoryConfig{
-		HasDefaultMemoryRequest: true,
-		DefaultMemoryRequest:    resource.MustParse("5Gi"),
+	memoryConfig := limitrange.Config{
+		HasDefaultRequest: true,
+		DefaultRequest:    resource.MustParse("5Gi"),
 	}
 
 	tests := []struct {
 		requests     corev1.ResourceList
-		mc           limitrange.MemoryConfig
+		mc           limitrange.Config
 		wantRequests corev1.ResourceList
 		msg          string
 	}{
 		{
 			requests:     corev1.ResourceList{},
-			mc:           config,
+			mc:           memoryConfig,
 			wantRequests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
 			msg:          "Memory request does not exist, set to default",
 		},
 		{
 			requests:     corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
-			mc:           config,
+			mc:           memoryConfig,
 			wantRequests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 			msg:          "Memory request already exists, do not set",
 		},
 		{
 			requests: corev1.ResourceList{},
-			mc: limitrange.MemoryConfig{
-				HasDefaultMemoryRequest: false,
+			mc: limitrange.Config{
+				HasDefaultRequest: false,
 			},
 			wantRequests: corev1.ResourceList{},
 			msg:          "Memory request does not exist but LimitRange does not have memory default, do not set",
@@ -249,69 +249,69 @@ func TestSetMemoryRequest(t *testing.T) {
 func TestSetMemoryLimit(t *testing.T) {
 	t.Parallel()
 
-	configWithoutMaxRatio := limitrange.MemoryConfig{
-		HasDefaultMemoryLimit:         true,
-		HasMaxLimitRequestMemoryRatio: false,
-		DefaultMemoryLimit:            resource.MustParse("50Mi"),
+	memoryConfigWithoutMaxRatio := limitrange.Config{
+		HasDefaultLimit:         true,
+		HasMaxLimitRequestRatio: false,
+		DefaultLimit:            resource.MustParse("50Mi"),
 	}
 
-	configWithMaxRatio := limitrange.MemoryConfig{
-		HasDefaultMemoryLimit:         true,
-		HasMaxLimitRequestMemoryRatio: true,
-		DefaultMemoryLimit:            resource.MustParse("50Mi"),
-		MaxLimitRequestMemoryRatio:    resource.MustParse("1.05"),
+	memoryConfigWithMaxRatio := limitrange.Config{
+		HasDefaultLimit:         true,
+		HasMaxLimitRequestRatio: true,
+		DefaultLimit:            resource.MustParse("50Mi"),
+		MaxLimitRequestRatio:    resource.MustParse("1.05"),
 	}
 
 	tests := []struct {
 		requests   corev1.ResourceList
 		limits     corev1.ResourceList
-		mc         limitrange.MemoryConfig
+		mc         limitrange.Config
 		wantLimits corev1.ResourceList
 		msg        string
 	}{
 		{
 			requests:   corev1.ResourceList{},
 			limits:     corev1.ResourceList{},
-			mc:         configWithMaxRatio,
+			mc:         memoryConfigWithMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("50Mi")).ToDec()},
 			msg:        "Memory request and limit not set, set to default",
 		},
 		{
 			requests:   corev1.ResourceList{},
 			limits:     corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
-			mc:         configWithMaxRatio,
+			mc:         memoryConfigWithMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
 			msg:        "Memory limit already exists, do not set",
 		},
 		{
 			requests:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
 			limits:     corev1.ResourceList{},
-			mc:         configWithoutMaxRatio,
+			mc:         memoryConfigWithoutMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("50Mi")).ToDec()},
 			msg:        "No maxLimitRequestMemoryRatio set, use defaultMemoryLimit which is higher than defaultLimitRequestMemoryRatio",
 		},
 		{
 			requests:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("49Mi")},
 			limits:     corev1.ResourceList{},
-			mc:         configWithoutMaxRatio,
+			mc:         memoryConfigWithoutMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("53.9Mi")},
 			msg:        "No maxLimitRequestMemoryRatio set, use defaultLimitRequestMemoryRatio which is higher than defaultMemoryLimit",
 		},
 		{
 			requests:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("45Mi")},
 			limits:     corev1.ResourceList{},
-			mc:         configWithMaxRatio,
+			mc:         memoryConfigWithMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("47.25Mi")},
 			msg:        "MaxLimitRequestMemoryRatio set, defaultMemoryLimit and defaultLimitRequestMemoryRatio both larger, use MaxLimitRequestMemoryRatio",
 		},
 		{
 			requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Gi")},
 			limits:   corev1.ResourceList{},
-			mc: limitrange.MemoryConfig{
-				HasDefaultMemoryLimit:         true,
-				HasMaxLimitRequestMemoryRatio: true,
-				DefaultMemoryLimit:            resource.MustParse("50Mi"),
-				MaxLimitRequestMemoryRatio:    resource.MustParse("1.3"),
+			mc: limitrange.Config{
+				HasDefaultLimit:         true,
+				HasMaxLimitRequestRatio: true,
+				DefaultLimit:            resource.MustParse("50Mi"),
+				MaxLimitRequestRatio:    resource.MustParse("1.3"),
 			},
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("65Gi")).ToDec()},
 			msg:        "MaxLimitRequestMemoryRatio set, defaultMemoryLimit and defaultLimitRequestMemoryRatio both smaller, use MaxLimitRequestMemoryRatio",
