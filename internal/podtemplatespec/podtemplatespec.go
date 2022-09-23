@@ -28,11 +28,11 @@ func (p *PodTemplateSpec) ApplyResourceRequirements(lri corev1.LimitRangeItem) (
 
 	limitRangeConfig := limitrange.GetMemoryConfig(lri)
 
-	if err := validateAndSetResourceRequirements(pts.Spec.InitContainers, limitRangeConfig); err != nil {
+	if err := setAndValidateResourceRequirements(pts.Spec.InitContainers, limitRangeConfig); err != nil {
 		return p.pts, err
 	}
 
-	if err := validateAndSetResourceRequirements(pts.Spec.Containers, limitRangeConfig); err != nil {
+	if err := setAndValidateResourceRequirements(pts.Spec.Containers, limitRangeConfig); err != nil {
 		return p.pts, err
 	}
 
@@ -40,7 +40,7 @@ func (p *PodTemplateSpec) ApplyResourceRequirements(lri corev1.LimitRangeItem) (
 	return pts, nil
 }
 
-func validateAndSetResourceRequirements(containers []corev1.Container, mc limitrange.MemoryConfig) error {
+func setAndValidateResourceRequirements(containers []corev1.Container, mc limitrange.MemoryConfig) error {
 	for idx := range containers {
 		container := &containers[idx]
 		if err := setMemoryRequest(container, mc); err != nil {
@@ -51,7 +51,7 @@ func validateAndSetResourceRequirements(containers []corev1.Container, mc limitr
 			return err
 		}
 
-		if err := validateMemoryRatio(*container, mc); err != nil {
+		if err := validateMemoryRequirements(*container, mc); err != nil {
 			return err
 		}
 	}
@@ -59,18 +59,20 @@ func validateAndSetResourceRequirements(containers []corev1.Container, mc limitr
 	return nil
 }
 
-func validateMemoryRatio(container corev1.Container, mc limitrange.MemoryConfig) error {
+func validateMemoryRequirements(container corev1.Container, mc limitrange.MemoryConfig) error {
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
-	if memoryRequest.IsZero() || memoryLimit.IsZero() || !mc.HasMaxLimitRequestMemoryRatio {
-		return nil
+	if memoryRequest.IsZero() || memoryLimit.IsZero() {
+		return fmt.Errorf("memory request (%s) and limit (%s) must be set", memoryRequest.String(), memoryLimit.String())
 	}
 
-	ratio := quantity.Div(*memoryLimit, *memoryRequest)
-	if ratio.Cmp(mc.MaxLimitRequestMemoryRatio) == 1 {
-		return fmt.Errorf("memory limit (%s) to request (%s) ratio (%s) exceeds MaxLimitRequestRatio (%s)",
-			memoryLimit.String(), memoryRequest.String(), ratio.String(), mc.MaxLimitRequestMemoryRatio.String())
+	if mc.HasMaxLimitRequestMemoryRatio {
+		ratio := quantity.Div(*memoryLimit, *memoryRequest)
+		if ratio.Cmp(mc.MaxLimitRequestMemoryRatio) == 1 {
+			return fmt.Errorf("memory limit (%s) to request (%s) ratio (%s) exceeds MaxLimitRequestRatio (%s)",
+				memoryLimit.String(), memoryRequest.String(), ratio.String(), mc.MaxLimitRequestMemoryRatio.String())
+		}
 	}
 
 	return nil

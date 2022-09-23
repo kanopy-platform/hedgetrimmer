@@ -142,28 +142,14 @@ func TestValidateMemoryRatio(t *testing.T) {
 			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.25Gi")},
 			mc:        config,
 			wantError: false,
-			msg:       "Container memory limit/request ratio equals max ratio, allow",
+			msg:       "Memory limit/request ratio equals max ratio, allow",
 		},
 		{
 			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
 			mc:        config,
 			wantError: true,
-			msg:       "Container memory limit/request ratio exceeds max ratio, error",
-		},
-		{
-			requests:  corev1.ResourceList{},
-			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
-			mc:        config,
-			wantError: false,
-			msg:       "Container memory request does not exist, no ratio check",
-		},
-		{
-			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
-			limits:    corev1.ResourceList{},
-			mc:        config,
-			wantError: false,
-			msg:       "Container memory limit does not exist, no ratio check",
+			msg:       "Memory limit/request ratio exceeds max ratio, error",
 		},
 		{
 			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
@@ -171,6 +157,20 @@ func TestValidateMemoryRatio(t *testing.T) {
 			mc:        limitrange.MemoryConfig{HasMaxLimitRequestMemoryRatio: false},
 			wantError: false,
 			msg:       "LimitRange does not specify max ratio, no ratio check",
+		},
+		{
+			requests:  corev1.ResourceList{},
+			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
+			mc:        config,
+			wantError: true,
+			msg:       "Memory request does not exist, error",
+		},
+		{
+			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
+			limits:    corev1.ResourceList{},
+			mc:        config,
+			wantError: true,
+			msg:       "Memory limit does not exist, error",
 		},
 	}
 
@@ -182,7 +182,7 @@ func TestValidateMemoryRatio(t *testing.T) {
 			},
 		}
 
-		err := validateMemoryRatio(container, test.mc)
+		err := validateMemoryRequirements(container, test.mc)
 		if test.wantError {
 			assert.Error(t, err, test.msg)
 		} else {
@@ -209,13 +209,13 @@ func TestSetMemoryRequest(t *testing.T) {
 			requests:     corev1.ResourceList{},
 			mc:           config,
 			wantRequests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
-			msg:          "Container memory request does not exist, set to default",
+			msg:          "Memory request does not exist, set to default",
 		},
 		{
 			requests:     corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 			mc:           config,
 			wantRequests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
-			msg:          "Container memory request already exists, do not set",
+			msg:          "Memory request already exists, do not set",
 		},
 		{
 			requests: corev1.ResourceList{},
@@ -223,7 +223,7 @@ func TestSetMemoryRequest(t *testing.T) {
 				HasDefaultMemoryRequest: false,
 			},
 			wantRequests: corev1.ResourceList{},
-			msg:          "Container memory request does not exist but LimitRange does not have memory default, do not set",
+			msg:          "Memory request does not exist but LimitRange does not have memory default, do not set",
 		},
 	}
 
@@ -274,14 +274,14 @@ func TestSetMemoryLimit(t *testing.T) {
 			limits:     corev1.ResourceList{},
 			mc:         configWithMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("50Mi")).ToDec()},
-			msg:        "Container memory request and limit not set, set to default",
+			msg:        "Memory request and limit not set, set to default",
 		},
 		{
 			requests:   corev1.ResourceList{},
 			limits:     corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
 			mc:         configWithMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
-			msg:        "Container memory limit already exists, do not set",
+			msg:        "Memory limit already exists, do not set",
 		},
 		{
 			requests:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
