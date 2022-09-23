@@ -79,3 +79,10 @@ func Max(x resource.Quantity, y resource.Quantity) resource.Quantity {
 func Ptr(q resource.Quantity) *resource.Quantity {
 	return &q
 }
+
+// convenience function for testing only
+func RoundUp(q resource.Quantity, scale resource.Scale) resource.Quantity {
+	rounded := q.DeepCopy()
+	rounded.RoundUp(scale)
+	return rounded
+}

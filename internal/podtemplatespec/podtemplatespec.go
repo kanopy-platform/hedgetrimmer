@@ -11,7 +11,7 @@ const (
 	defaultLimitRequestMemoryRatio float64 = 1.1
 )
 
-func ApplyLimits(inputPts corev1.PodTemplateSpec, lri corev1.LimitRangeItem) (corev1.PodTemplateSpec, error) {
+func ApplyResourceRequirements(inputPts corev1.PodTemplateSpec, lri corev1.LimitRangeItem) (corev1.PodTemplateSpec, error) {
 	pts := *inputPts.DeepCopy()
 
 	if !isLimitRangeTypeContainer(lri) {
@@ -32,16 +32,17 @@ func ApplyLimits(inputPts corev1.PodTemplateSpec, lri corev1.LimitRangeItem) (co
 }
 
 func validateAndSetResourceRequirements(containers []corev1.Container, lrc limitRangeConfig) error {
-	for _, container := range containers {
-		if err := validateMemoryRatio(container, lrc); err != nil {
+	for idx := range containers {
+		container := &containers[idx]
+		if err := validateMemoryRatio(*container, lrc); err != nil {
 			return err
 		}
 
-		if err := setMemoryRequest(&container, lrc); err != nil {
+		if err := setMemoryRequest(container, lrc); err != nil {
 			return err
 		}
 
-		if err := setMemoryLimit(&container, lrc); err != nil {
+		if err := setMemoryLimit(container, lrc); err != nil {
 			return err
 		}
 	}
@@ -78,7 +79,6 @@ func setMemoryRequest(container *corev1.Container, lrc limitRangeConfig) error {
 		}
 		container.Resources.Requests[corev1.ResourceMemory] = lrc.defaultMemoryRequest
 	}
-
 	return nil
 }
 
@@ -91,9 +91,8 @@ func setMemoryLimit(container *corev1.Container, lrc limitRangeConfig) error {
 			container.Resources.Limits = corev1.ResourceList{}
 		}
 
-		if lrc.hasMaxLimitRequestMemoryRatio {
-			container.Resources.Limits[corev1.ResourceMemory] = quantity.Min(
-				lrc.defaultMemoryLimit, quantity.Mul(*memoryRequest, lrc.maxLimitRequestMemoryRatio))
+		if lrc.hasMaxLimitRequestMemoryRatio && !memoryRequest.IsZero() {
+			container.Resources.Limits[corev1.ResourceMemory] = quantity.Mul(*memoryRequest, lrc.maxLimitRequestMemoryRatio)
 		} else {
 			ratioMemoryLimit, err := quantity.MulFloat64(*memoryRequest, defaultLimitRequestMemoryRatio)
 			if err != nil {
