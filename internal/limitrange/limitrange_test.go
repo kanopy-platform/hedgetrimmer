@@ -1,4 +1,4 @@
-package podtemplatespec
+package limitrange
 
 import (
 	"testing"
@@ -26,24 +26,19 @@ func TestIsLimitRangeTypeContainer(t *testing.T) {
 			want:       false,
 			msg:        "Pod type",
 		},
-		{
-			limitRange: corev1.LimitRangeItem{Type: corev1.LimitTypePersistentVolumeClaim},
-			want:       false,
-			msg:        "PVC type",
-		},
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.want, isLimitRangeTypeContainer(test.limitRange), test.msg)
+		assert.Equal(t, test.want, IsLimitRangeTypeContainer(test.limitRange), test.msg)
 	}
 }
 
-func TestGetLimitRangeConfig(t *testing.T) {
+func TestGetMemoryConfig(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		limitRange corev1.LimitRangeItem
-		want       limitRangeConfig
+		want       MemoryConfig
 		msg        string
 	}{
 		{
@@ -58,13 +53,13 @@ func TestGetLimitRangeConfig(t *testing.T) {
 					corev1.ResourceMemory: resource.MustParse("1.5"),
 				},
 			},
-			want: limitRangeConfig{
-				hasDefaultMemoryRequest:       true,
-				hasDefaultMemoryLimit:         true,
-				hasMaxLimitRequestMemoryRatio: true,
-				defaultMemoryRequest:          resource.MustParse("1Gi"),
-				defaultMemoryLimit:            resource.MustParse("2Gi"),
-				maxLimitRequestMemoryRatio:    resource.MustParse("1.5"),
+			want: MemoryConfig{
+				HasDefaultMemoryRequest:       true,
+				HasDefaultMemoryLimit:         true,
+				HasMaxLimitRequestMemoryRatio: true,
+				DefaultMemoryRequest:          resource.MustParse("1Gi"),
+				DefaultMemoryLimit:            resource.MustParse("2Gi"),
+				MaxLimitRequestMemoryRatio:    resource.MustParse("1.5"),
 			},
 			msg: "Memory resource request, limit, and ratio exists",
 		},
@@ -78,16 +73,16 @@ func TestGetLimitRangeConfig(t *testing.T) {
 				},
 				MaxLimitRequestRatio: corev1.ResourceList{},
 			},
-			want: limitRangeConfig{
-				hasDefaultMemoryRequest:       false,
-				hasDefaultMemoryLimit:         false,
-				hasMaxLimitRequestMemoryRatio: false,
+			want: MemoryConfig{
+				HasDefaultMemoryRequest:       false,
+				HasDefaultMemoryLimit:         false,
+				HasMaxLimitRequestMemoryRatio: false,
 			},
 			msg: "Memory resource request, limit, and ratio does not exist",
 		},
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.want, getLimitRangeConfig(test.limitRange), test.msg)
+		assert.Equal(t, test.want, GetMemoryConfig(test.limitRange), test.msg)
 	}
 }
