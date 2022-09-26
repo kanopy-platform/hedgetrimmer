@@ -8,7 +8,7 @@ func IsLimitRangeTypeContainer(lri corev1.LimitRangeItem) bool {
 	return lri.Type == corev1.LimitTypeContainer
 }
 
-func GetConfig(lri corev1.LimitRangeItem, resource corev1.ResourceName) Config {
+func NewConfig(lri corev1.LimitRangeItem, resource corev1.ResourceName) Config {
 	l := Config{}
 
 	l.DefaultRequest, l.HasDefaultRequest = lri.DefaultRequest[resource]

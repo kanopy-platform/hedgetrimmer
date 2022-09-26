@@ -1,4 +1,4 @@
-package podtemplatespec
+package mutators
 
 import (
 	"fmt"
@@ -8,35 +8,29 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const (
-	defaultLimitRequestMemoryRatio float64 = 1.1
-)
+type PodTemplateSpec struct{}
 
-func New(p corev1.PodTemplateSpec) *PodTemplateSpec {
-	pts := &PodTemplateSpec{
-		pts: *p.DeepCopy(),
-	}
-	return pts
+func NewPtsMutator() PodTemplateSpec {
+	return PodTemplateSpec{}
 }
 
-func (p *PodTemplateSpec) ApplyResourceRequirements(lri corev1.LimitRangeItem) (corev1.PodTemplateSpec, error) {
-	pts := *p.pts.DeepCopy()
+func (p PodTemplateSpec) ApplyResourceRequirements(inputPts corev1.PodTemplateSpec, lri corev1.LimitRangeItem) (corev1.PodTemplateSpec, error) {
+	pts := *inputPts.DeepCopy()
 
 	if !limitrange.IsLimitRangeTypeContainer(lri) {
-		return p.pts, fmt.Errorf("expected LimitRangeItem type Container, got %q instead", lri.Type)
+		return pts, fmt.Errorf("expected LimitRangeItem type Container, got %q instead", lri.Type)
 	}
 
-	limitRangeMemory := limitrange.GetConfig(lri, corev1.ResourceMemory)
+	limitRangeMemory := limitrange.NewConfig(lri, corev1.ResourceMemory)
 
 	if err := setAndValidateResourceRequirements(pts.Spec.InitContainers, limitRangeMemory); err != nil {
-		return p.pts, err
+		return pts, err
 	}
 
 	if err := setAndValidateResourceRequirements(pts.Spec.Containers, limitRangeMemory); err != nil {
-		return p.pts, err
+		return pts, err
 	}
 
-	p.pts = pts
 	return pts, nil
 }
 

@@ -83,6 +83,6 @@ func TestGetMemoryConfig(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.want, GetConfig(test.limitRange, corev1.ResourceMemory), test.msg)
+		assert.Equal(t, test.want, NewConfig(test.limitRange, corev1.ResourceMemory), test.msg)
 	}
 }

@@ -1,4 +1,4 @@
-package podtemplatespec
+package mutators
 
 import (
 	"testing"
@@ -103,8 +103,8 @@ func TestApplyResourceRequirements(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		pts := New(test.inputPts)
-		result, err := pts.ApplyResourceRequirements(test.inputLri)
+		pts := NewPtsMutator()
+		result, err := pts.ApplyResourceRequirements(test.inputPts, test.inputLri)
 		if test.wantError {
 			assert.Error(t, err, test.msg)
 		} else {
