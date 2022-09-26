@@ -14,7 +14,7 @@ func NewPtsMutator() PodTemplateSpec {
 	return PodTemplateSpec{}
 }
 
-func (p PodTemplateSpec) ApplyResourceRequirements(inputPts corev1.PodTemplateSpec, lri corev1.LimitRangeItem) (corev1.PodTemplateSpec, error) {
+func (p PodTemplateSpec) Mutate(inputPts corev1.PodTemplateSpec, lri corev1.LimitRangeItem) (corev1.PodTemplateSpec, error) {
 	pts := *inputPts.DeepCopy()
 
 	if !limitrange.IsLimitRangeTypeContainer(lri) {

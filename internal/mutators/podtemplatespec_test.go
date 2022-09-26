@@ -104,7 +104,7 @@ func TestApplyResourceRequirements(t *testing.T) {
 
 	for _, test := range tests {
 		pts := NewPtsMutator()
-		result, err := pts.ApplyResourceRequirements(test.inputPts, test.inputLri)
+		result, err := pts.Mutate(test.inputPts, test.inputLri)
 		if test.wantError {
 			assert.Error(t, err, test.msg)
 		} else {
