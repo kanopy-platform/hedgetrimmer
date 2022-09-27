@@ -33,26 +33,31 @@ func TestIsLimitRangeTypeContainer(t *testing.T) {
 	}
 }
 
-func TestGetMemoryConfig(t *testing.T) {
+func TestNewConfig(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		limitRange corev1.LimitRangeItem
+		resource   corev1.ResourceName
 		want       Config
 		msg        string
 	}{
 		{
+			// extract out memory resource
 			limitRange: corev1.LimitRangeItem{
 				DefaultRequest: corev1.ResourceList{
 					corev1.ResourceMemory: resource.MustParse("1Gi"),
+					corev1.ResourceCPU:    resource.MustParse("500m"),
 				},
 				Default: corev1.ResourceList{
-					corev1.ResourceMemory: resource.MustParse("2Gi"),
+					corev1.ResourceMemory:  resource.MustParse("2Gi"),
+					corev1.ResourceStorage: resource.MustParse("5Gi"),
 				},
 				MaxLimitRequestRatio: corev1.ResourceList{
 					corev1.ResourceMemory: resource.MustParse("1.5"),
 				},
 			},
+			resource: corev1.ResourceMemory,
 			want: Config{
 				HasDefaultRequest:       true,
 				HasDefaultLimit:         true,
@@ -61,28 +66,35 @@ func TestGetMemoryConfig(t *testing.T) {
 				DefaultLimit:            resource.MustParse("2Gi"),
 				MaxLimitRequestRatio:    resource.MustParse("1.5"),
 			},
-			msg: "Memory resource request, limit, and ratio exists",
+			msg: "extract out memory resource",
 		},
 		{
+			// extract out CPU resource
 			limitRange: corev1.LimitRangeItem{
 				DefaultRequest: corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("500m"),
+					corev1.ResourceCPU:    resource.MustParse("500m"),
+					corev1.ResourceMemory: resource.MustParse("1Gi"),
 				},
 				Default: corev1.ResourceList{
 					corev1.ResourceStorage: resource.MustParse("5Gi"),
 				},
-				MaxLimitRequestRatio: corev1.ResourceList{},
+				MaxLimitRequestRatio: corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("1.5"),
+				},
 			},
+			resource: corev1.ResourceCPU,
 			want: Config{
-				HasDefaultRequest:       false,
+				HasDefaultRequest:       true,
 				HasDefaultLimit:         false,
-				HasMaxLimitRequestRatio: false,
+				HasMaxLimitRequestRatio: true,
+				DefaultRequest:          resource.MustParse("500m"),
+				MaxLimitRequestRatio:    resource.MustParse("1.5"),
 			},
-			msg: "Memory resource request, limit, and ratio does not exist",
+			msg: "extract out CPU resource",
 		},
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.want, NewConfig(test.limitRange, corev1.ResourceMemory), test.msg)
+		assert.Equal(t, test.want, NewConfig(test.limitRange, test.resource), test.msg)
 	}
 }
