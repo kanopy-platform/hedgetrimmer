@@ -6,7 +6,93 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
+	corev1Listers "k8s.io/client-go/listers/core/v1"
 )
+
+type MockLimitRanger struct {
+	nl corev1Listers.LimitRangeNamespaceLister
+}
+
+func (mlr *MockLimitRanger) List(selector labels.Selector) (ret []*corev1.LimitRange, err error) {
+	return ret, err
+}
+
+func (mlr *MockLimitRanger) LimitRanges(namespace string) corev1Listers.LimitRangeNamespaceLister {
+	return mlr.nl
+}
+
+type MockLimitRangeNamespaceLister struct {
+	ranges []*corev1.LimitRange
+	err    error
+}
+
+func (mlrnl *MockLimitRangeNamespaceLister) List(selector labels.Selector) (ret []*corev1.LimitRange, err error) {
+	return mlrnl.ranges, mlrnl.err
+}
+
+func (mlrnl *MockLimitRangeNamespaceLister) Get(name string) (*corev1.LimitRange, error) {
+	return nil, nil
+}
+
+func TestLimitRanger(t *testing.T) {
+	t.Parallel()
+
+	emptyNSL := MockLimitRangeNamespaceLister{
+		ranges: []*corev1.LimitRange{},
+	}
+	empty := MockLimitRanger{
+		nl: &emptyNSL,
+	}
+	mlrnl := MockLimitRangeNamespaceLister{
+		ranges: []*corev1.LimitRange{
+			&corev1.LimitRange{
+				Spec: corev1.LimitRangeSpec{
+					Limits: []corev1.LimitRangeItem{
+						corev1.LimitRangeItem{Type: corev1.LimitTypeContainer},
+					},
+				},
+			},
+		},
+	}
+	lrl := MockLimitRanger{
+		nl: &mlrnl,
+	}
+
+	tests := []struct {
+		ns        string
+		lr        *LimitRange
+		want      *Config
+		wantError bool
+	}{
+		{
+			ns:        "",
+			lr:        &LimitRange{},
+			want:      nil,
+			wantError: true,
+		},
+		{
+			ns: "t",
+			lr: &LimitRange{
+				lister: &lrl,
+			},
+			want: &Config{},
+		},
+		{
+			ns: "t",
+			lr: &LimitRange{
+				lister: &empty,
+			},
+			want: nil,
+		},
+	}
+
+	for _, test := range tests {
+		c, e := test.lr.NewConfig(test.ns)
+		assert.Equal(t, test.wantError, e != nil)
+		assert.Equal(t, test.want, c)
+	}
+}
 
 func TestIsLimitRangeTypeContainer(t *testing.T) {
 	t.Parallel()
