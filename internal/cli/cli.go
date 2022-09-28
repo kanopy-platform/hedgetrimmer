@@ -7,6 +7,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
+	"github.com/kanopy-platform/hedgetrimmer/internal/admission/handlers"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
 
 	"github.com/spf13/cobra"
@@ -105,7 +106,9 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	admissionRouter, err := admission.NewRouter()
+	var m interface{}
+
+	admissionRouter, err := admission.NewRouter(admission.WithAdmissionHandlers(handlers.NewDeploymentHandler(m)))
 	if err != nil {
 		return err
 	}
