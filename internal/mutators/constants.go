@@ -1,5 +1,7 @@
 package mutators
 
+import "gopkg.in/inf.v0"
+
 const (
-	defaultLimitRequestMemoryRatio float64 = 1.1
+	infScaleMicro inf.Scale = 6 // 10^-6
 )

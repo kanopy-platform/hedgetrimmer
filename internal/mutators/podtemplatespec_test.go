@@ -1,6 +1,7 @@
 package mutators
 
 import (
+	"os"
 	"testing"
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
@@ -10,115 +11,143 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func TestApplyResourceRequirements(t *testing.T) {
+var testPts PodTemplateSpec
+
+const testDefaultMaxLimitRequestRatio float64 = 1.1
+
+func TestMain(m *testing.M) {
+	testPts = NewPtsMutator(testDefaultMaxLimitRequestRatio)
+
+	exitVal := m.Run()
+	os.Exit(exitVal)
+}
+
+func TestMutate(t *testing.T) {
 	t.Parallel()
 
-	limitRangeItem := corev1.LimitRangeItem{
-		Type:           corev1.LimitTypeContainer,
-		DefaultRequest: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Mi")},
-		Default:        corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("64Mi")},
+	limitRangeMemory := limitrange.Config{
+		HasDefaultRequest:       true,
+		HasDefaultLimit:         true,
+		HasMaxLimitRequestRatio: false,
+		DefaultRequest:          resource.MustParse("50Mi"),
+		DefaultLimit:            resource.MustParse("64Mi"),
 	}
 
 	tests := []struct {
-		inputPts  corev1.PodTemplateSpec
-		inputLri  corev1.LimitRangeItem
-		want      corev1.PodTemplateSpec
-		wantError bool
-		msg       string
+		msg        string
+		containers []corev1.Container
+		config     limitrange.Config
+		want       []corev1.Container
+		wantError  bool
 	}{
 		{
-			inputPts: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					InitContainers: []corev1.Container{
-						{
-							Name:      "init-container-1",
-							Resources: corev1.ResourceRequirements{}, // empty requests and limits
-						},
-					},
-					Containers: []corev1.Container{
-						{
-							Name: "container-1",
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("50Gi")}, // no memory request
-								Limits:   corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("500m")},     // no memory limit
-							},
-						},
-						{
-							Name: "container-2",
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("2Gi")}, // has memory request
-								Limits:   corev1.ResourceList{},                                                 // no memory limit
-							},
-						},
-					},
+			msg: "No request or limit specified, apply default",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{},
 				},
 			},
-			inputLri: limitRangeItem,
-			want: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					InitContainers: []corev1.Container{
-						{
-							Name: "init-container-1",
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Mi")},                        // populated with default
-								Limits:   corev1.ResourceList{corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("64Mi")).ToDec()}, // populated with default
-							},
-						},
-					},
-					Containers: []corev1.Container{
-						{
-							Name: "container-1",
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceStorage: resource.MustParse("50Gi"),
-									corev1.ResourceMemory:  resource.MustParse("50Mi"), // populated with default
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("500m"),
-									corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("64Mi")).ToDec(), // populated with default
-								},
-							},
-						},
-						{
-							Name: "container-2",
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("2Gi")},   // do not override user config
-								Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("2.2Gi")}, // use defaultLimitRequestMemoryRatio
-							},
-						},
+			config: limitRangeMemory,
+			want: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Mi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("64Mi")).ToDec()},
 					},
 				},
 			},
 			wantError: false,
-			msg:       "Successfully applies requests and limits",
 		},
 		{
-			inputPts: corev1.PodTemplateSpec{},
-			inputLri: corev1.LimitRangeItem{
-				Type: corev1.LimitTypePod,
+			msg: "No request but has limit, apply DefaultRequest",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("100Mi")},
+					},
+				},
 			},
+			config: limitRangeMemory,
+			want: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Mi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("100Mi")},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			msg: "Has request but no limit specified, apply defaultMaxLimitRequestRatio which exceeds DefaultLimit",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+					},
+				},
+			},
+			config: limitRangeMemory,
+			want: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5.5Gi")},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			msg: "No request but has limit set below DefaultRequest, error",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
+					},
+				},
+			},
+			config:    limitRangeMemory,
 			wantError: true,
-			msg:       "Incorrect input LimitRangeItem of type Pod",
 		},
 	}
 
 	for _, test := range tests {
-		pts := NewPtsMutator()
-		result, err := pts.Mutate(test.inputPts, test.inputLri)
-		if test.wantError {
-			assert.Error(t, err, test.msg)
-		} else {
-			assert.NoError(t, err, test.msg)
-
-			// round up to scale 0 to avoid Scale differences
-			roundUpContainersResourceQuantityScale(test.want.Spec.InitContainers, 0)
-			roundUpContainersResourceQuantityScale(test.want.Spec.Containers, 0)
-
-			roundUpContainersResourceQuantityScale(result.Spec.InitContainers, 0)
-			roundUpContainersResourceQuantityScale(result.Spec.Containers, 0)
-
-			assert.Equal(t, test.want, result, test.msg)
+		// test both InitContainers and Containers using the given input and want
+		inputs := []corev1.PodTemplateSpec{
+			{Spec: corev1.PodSpec{InitContainers: test.containers}},
+			{Spec: corev1.PodSpec{Containers: test.containers}},
 		}
+
+		wants := []corev1.PodTemplateSpec{
+			{Spec: corev1.PodSpec{InitContainers: test.want}},
+			{Spec: corev1.PodSpec{Containers: test.want}},
+		}
+
+		for idx := range inputs {
+			input := inputs[idx]
+			want := wants[idx]
+
+			result, err := testPts.Mutate(input, test.config)
+			if test.wantError {
+				assert.Error(t, err, test.msg)
+			} else {
+				assert.NoError(t, err, test.msg)
+
+				// round up to scale 0 to avoid Scale differences
+				if len(input.Spec.InitContainers) > 0 {
+					roundUpContainersResourceQuantityScale(want.Spec.InitContainers, corev1.ResourceMemory, 0)
+					roundUpContainersResourceQuantityScale(result.Spec.InitContainers, corev1.ResourceMemory, 0)
+				}
+				if len(input.Spec.Containers) > 0 {
+					roundUpContainersResourceQuantityScale(want.Spec.Containers, corev1.ResourceMemory, 0)
+					roundUpContainersResourceQuantityScale(result.Spec.Containers, corev1.ResourceMemory, 0)
+				}
+
+				assert.Equal(t, want, result, test.msg)
+			}
+		}
+
 	}
 }
 
@@ -146,7 +175,7 @@ func TestValidateMemoryRatio(t *testing.T) {
 		},
 		{
 			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
-			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
+			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.25000001Gi")},
 			mc:        memoryConfig,
 			wantError: true,
 			msg:       "Memory limit/request ratio exceeds max ratio, error",
@@ -172,6 +201,13 @@ func TestValidateMemoryRatio(t *testing.T) {
 			wantError: true,
 			msg:       "Memory limit does not exist, error",
 		},
+		{
+			requests:  corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Mi")},
+			limits:    corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("49.99Mi")},
+			mc:        memoryConfig,
+			wantError: true,
+			msg:       "Memory limit is smaller than request, error",
+		},
 	}
 
 	for _, test := range tests {
@@ -182,7 +218,7 @@ func TestValidateMemoryRatio(t *testing.T) {
 			},
 		}
 
-		err := validateMemoryRequirements(container, test.mc)
+		err := testPts.validateMemoryRequirements(container, test.mc)
 		if test.wantError {
 			assert.Error(t, err, test.msg)
 		} else {
@@ -240,8 +276,7 @@ func TestSetMemoryRequest(t *testing.T) {
 			},
 		}
 
-		err := setMemoryRequest(container, test.mc)
-		assert.NoError(t, err, test.msg)
+		testPts.setMemoryRequest(container, test.mc)
 		assert.Equal(t, wantContainer, container, test.msg)
 	}
 }
@@ -275,6 +310,13 @@ func TestSetMemoryLimit(t *testing.T) {
 			mc:         memoryConfigWithMaxRatio,
 			wantLimits: corev1.ResourceList{corev1.ResourceMemory: *quantity.Ptr(resource.MustParse("50Mi")).ToDec()},
 			msg:        "Memory request and limit not set, set to default",
+		},
+		{
+			requests:   corev1.ResourceList{},
+			limits:     corev1.ResourceList{},
+			mc:         limitrange.Config{},
+			wantLimits: corev1.ResourceList{},
+			msg:        "Memory request and limit not set, config does not have defaults, do not set",
 		},
 		{
 			requests:   corev1.ResourceList{},
@@ -333,30 +375,33 @@ func TestSetMemoryLimit(t *testing.T) {
 			},
 		}
 
-		err := setMemoryLimit(container, test.mc)
+		err := testPts.setMemoryLimit(container, test.mc)
 		assert.NoError(t, err, test.msg)
 
 		// round up to scale 0 to avoid Scale differences
-		roundUpResourceQuantityScale(container, 0)
-		roundUpResourceQuantityScale(wantContainer, 0)
+		roundUpResourceQuantityToScale(container, corev1.ResourceMemory, 0)
+		roundUpResourceQuantityToScale(wantContainer, corev1.ResourceMemory, 0)
 
 		assert.Equal(t, wantContainer, container, test.msg)
 	}
 }
 
 // convenience function for testing only
-func roundUpResourceQuantityScale(container *corev1.Container, scale resource.Scale) {
-	if request, ok := container.Resources.Requests[corev1.ResourceMemory]; ok {
-		container.Resources.Requests[corev1.ResourceMemory] = quantity.RoundUp(request, 0)
-	}
-	if limit, ok := container.Resources.Limits[corev1.ResourceMemory]; ok {
-		container.Resources.Limits[corev1.ResourceMemory] = quantity.RoundUp(limit, 0)
+func roundUpQuantityToScale(list corev1.ResourceList, name corev1.ResourceName, scale resource.Scale) {
+	if request, ok := list[name]; ok {
+		list[name] = quantity.RoundUp(request, scale)
 	}
 }
 
 // convenience function for testing only
-func roundUpContainersResourceQuantityScale(containers []corev1.Container, scale resource.Scale) {
+func roundUpResourceQuantityToScale(container *corev1.Container, name corev1.ResourceName, scale resource.Scale) {
+	roundUpQuantityToScale(container.Resources.Requests, name, scale)
+	roundUpQuantityToScale(container.Resources.Limits, name, scale)
+}
+
+// convenience function for testing only
+func roundUpContainersResourceQuantityScale(containers []corev1.Container, name corev1.ResourceName, scale resource.Scale) {
 	for idx := range containers {
-		roundUpResourceQuantityScale(&containers[idx], 0)
+		roundUpResourceQuantityToScale(&containers[idx], name, scale)
 	}
 }
