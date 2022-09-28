@@ -14,7 +14,7 @@ test: tidy ## Run tests in local environment
 
 .PHONY: integration
 integration: tidy envtest ## Run integration tests with envtest
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --arch amd64 -p path)" go test -cover -short -run=$(RUN) $(PKG)
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --arch amd64 -p path)" go test -cover -run=$(RUN) $(PKG)
 
 .PHONY: dev
 dev: tidy
@@ -61,4 +61,4 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	GOARCH=amd64 GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
