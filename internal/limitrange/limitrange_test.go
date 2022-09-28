@@ -46,10 +46,10 @@ func TestLimitRanger(t *testing.T) {
 	}
 	mlrnl := MockLimitRangeNamespaceLister{
 		ranges: []*corev1.LimitRange{
-			&corev1.LimitRange{
+			{
 				Spec: corev1.LimitRangeSpec{
 					Limits: []corev1.LimitRangeItem{
-						corev1.LimitRangeItem{Type: corev1.LimitTypeContainer},
+						{Type: corev1.LimitTypeContainer},
 					},
 				},
 			},
@@ -74,14 +74,14 @@ func TestLimitRanger(t *testing.T) {
 		{
 			ns: "t",
 			lr: &LimitRange{
-				lister: &lrl,
+				Lister: &lrl,
 			},
 			want: &Config{},
 		},
 		{
 			ns: "t",
 			lr: &LimitRange{
-				lister: &empty,
+				Lister: &empty,
 			},
 			want: nil,
 		},

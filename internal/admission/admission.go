@@ -30,8 +30,16 @@ func WithAdmissionHandlers(handlers ...AdmissionHandler) OptionsFunc {
 	}
 }
 
+func WithLimitRanger(lr LimitRanger) OptionsFunc {
+	return func(r *Router) error {
+		r.limitRanger = lr
+		return nil
+	}
+}
+
 type Router struct {
-	handlers map[string]AdmissionHandler
+	handlers    map[string]AdmissionHandler
+	limitRanger LimitRanger
 }
 
 func NewRouter(opts ...OptionsFunc) (*Router, error) {
@@ -65,6 +73,16 @@ func (r *Router) InjectDecoder(d *admission.Decoder) error {
 }
 
 func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Response {
+
+	ns := req.Namespace
+	cfg, err := r.limitRanger.LimitRangeConfig(ns) // this should probably not return a pointer.
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf("resource %s has an incorrectly configured namespace, unable to get limit ranges", req.RequestKind.Kind))
+	}
+
+	// todo create const for key
+	ctx = context.WithValue(ctx, "LIMIT_RANGER", *cfg) // derefencing this pointer here.
+
 	if h, ok := r.handlers[req.RequestKind.Kind]; ok {
 		return h.Handle(ctx, req)
 	}
