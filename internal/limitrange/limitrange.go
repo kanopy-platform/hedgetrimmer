@@ -27,8 +27,8 @@ type LimitRange struct {
 	lister corev1Listers.LimitRangeLister
 }
 
-//NewConfig takes a namespace string and returns a Config for memory or a nil if no limit range of type Container is found in the namespace. It returns a non-nil error if there is an error sourcing data from the cluster api or the namespace name is empty
-func (lr *LimitRange) NewConfig(namespace string) (*Config, error) {
+//LimitRangeConfig takes a namespace string and returns a Config for memory or a nil if no limit range of type Container is found in the namespace. It returns a non-nil error if there is an error sourcing data from the cluster api or the namespace name is empty
+func (lr *LimitRange) LimitRangeConfig(namespace string) (*Config, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("Invalid namespace: %q", namespace)
 	}

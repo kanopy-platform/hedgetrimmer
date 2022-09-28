@@ -88,7 +88,7 @@ func TestLimitRanger(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, e := test.lr.NewConfig(test.ns)
+		c, e := test.lr.LimitRangeConfig(test.ns)
 		assert.Equal(t, test.wantError, e != nil)
 		assert.Equal(t, test.want, c)
 	}
@@ -119,7 +119,7 @@ func TestIsLimitRangeTypeContainer(t *testing.T) {
 	}
 }
 
-func TestNewConfig(t *testing.T) {
+func TestLimitRangeConfig(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
