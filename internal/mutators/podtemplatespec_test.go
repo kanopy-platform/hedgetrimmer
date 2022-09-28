@@ -11,13 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-var testPts PodTemplateSpec
-
-const testDefaultMaxLimitRequestRatio float64 = 1.1
+var testPts *PodTemplateSpec
 
 func TestMain(m *testing.M) {
-	testPts = NewPodTemplateSpec(testDefaultMaxLimitRequestRatio)
-
+	testPts = NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 	os.Exit(m.Run())
 }
 
@@ -58,26 +55,6 @@ func TestMutate(t *testing.T) {
 			wantError: false,
 		},
 		{
-			msg: "No request but has limit, apply DefaultRequest",
-			containers: []corev1.Container{
-				{
-					Resources: corev1.ResourceRequirements{
-						Limits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("100Mi")},
-					},
-				},
-			},
-			config: limitRangeMemory,
-			want: []corev1.Container{
-				{
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Mi")},
-						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("100Mi")},
-					},
-				},
-			},
-			wantError: false,
-		},
-		{
 			msg: "Has request but no limit specified, apply defaultMaxLimitRequestRatio which exceeds DefaultLimit",
 			containers: []corev1.Container{
 				{
@@ -96,18 +73,6 @@ func TestMutate(t *testing.T) {
 				},
 			},
 			wantError: false,
-		},
-		{
-			msg: "No request but has limit set below DefaultRequest, error",
-			containers: []corev1.Container{
-				{
-					Resources: corev1.ResourceRequirements{
-						Limits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("10Mi")},
-					},
-				},
-			},
-			config:    limitRangeMemory,
-			wantError: true,
 		},
 	}
 
@@ -231,11 +196,14 @@ func TestSetMemoryRequest(t *testing.T) {
 
 	memoryConfig := limitrange.Config{
 		HasDefaultRequest: true,
+		HasDefaultLimit:   true,
 		DefaultRequest:    resource.MustParse("5Gi"),
+		DefaultLimit:      resource.MustParse("6Gi"),
 	}
 
 	tests := []struct {
 		requests     corev1.ResourceList
+		limits       corev1.ResourceList
 		mc           limitrange.Config
 		wantRequests corev1.ResourceList
 		msg          string
@@ -253,10 +221,28 @@ func TestSetMemoryRequest(t *testing.T) {
 			wantRequests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
 		},
 		{
-			msg:      "Memory request does not exist but LimitRange does not have memory default, do not set",
+			msg:          "Memory request does not exist, but limit is set, set request = limit",
+			requests:     nil,
+			limits:       corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("100Mi")},
+			mc:           memoryConfig,
+			wantRequests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("100Mi")},
+		},
+		{
+			msg:      "Memory request and limit does not exist, but default limit is set, set request = defaultLimit",
+			requests: nil,
+			limits:   nil,
+			mc: limitrange.Config{
+				HasDefaultLimit: true,
+				DefaultLimit:    resource.MustParse("100Mi"),
+			},
+			wantRequests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("100Mi")},
+		},
+		{
+			msg:      "Memory request and limit does not exist and LimitRange does not have default request or limit, do not set",
 			requests: corev1.ResourceList{},
 			mc: limitrange.Config{
 				HasDefaultRequest: false,
+				HasDefaultLimit:   false,
 			},
 			wantRequests: corev1.ResourceList{},
 		},
@@ -266,12 +252,14 @@ func TestSetMemoryRequest(t *testing.T) {
 		container := &corev1.Container{
 			Resources: corev1.ResourceRequirements{
 				Requests: test.requests,
+				Limits:   test.limits,
 			},
 		}
 
 		wantContainer := &corev1.Container{
 			Resources: corev1.ResourceRequirements{
 				Requests: test.wantRequests,
+				Limits:   test.limits,
 			},
 		}
 
@@ -374,8 +362,7 @@ func TestSetMemoryLimit(t *testing.T) {
 			},
 		}
 
-		err := testPts.setMemoryLimit(container, test.mc)
-		assert.NoError(t, err, test.msg)
+		testPts.setMemoryLimit(container, test.mc)
 
 		// round up to scale 0 to avoid Scale differences
 		roundUpContainerQuantityToScale(container, corev1.ResourceMemory, 0)

@@ -10,16 +10,22 @@ import (
 )
 
 type PodTemplateSpec struct {
-	defaultMemoryLimitRequestRatio float64
+	defaultMemoryLimitRequestRatio resource.Quantity
 }
 
-func NewPodTemplateSpec(defaultMemoryLimitRequestRatio float64) PodTemplateSpec {
-	return PodTemplateSpec{
-		defaultMemoryLimitRequestRatio: defaultMemoryLimitRequestRatio,
+func NewPodTemplateSpec(opts ...OptionsFunc) *PodTemplateSpec {
+	pts := &PodTemplateSpec{
+		defaultMemoryLimitRequestRatio: resource.MustParse("1.1"),
 	}
+
+	for _, opt := range opts {
+		opt(pts)
+	}
+
+	return pts
 }
 
-func (p PodTemplateSpec) Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemory limitrange.Config) (corev1.PodTemplateSpec, error) {
+func (p *PodTemplateSpec) Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemory limitrange.Config) (corev1.PodTemplateSpec, error) {
 	pts := *inputPts.DeepCopy()
 
 	if err := p.setAndValidateResourceRequirements(pts.Spec.InitContainers, limitRangeMemory); err != nil {
@@ -33,14 +39,12 @@ func (p PodTemplateSpec) Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemor
 	return pts, nil
 }
 
-func (p PodTemplateSpec) setAndValidateResourceRequirements(containers []corev1.Container, limitRangeMemory limitrange.Config) error {
+func (p *PodTemplateSpec) setAndValidateResourceRequirements(containers []corev1.Container, limitRangeMemory limitrange.Config) error {
 	for idx := range containers {
 		container := &containers[idx]
-		p.setMemoryRequest(container, limitRangeMemory)
 
-		if err := p.setMemoryLimit(container, limitRangeMemory); err != nil {
-			return err
-		}
+		p.setMemoryRequest(container, limitRangeMemory)
+		p.setMemoryLimit(container, limitRangeMemory)
 
 		if err := p.validateMemoryRequirements(*container, limitRangeMemory); err != nil {
 			return err
@@ -50,7 +54,7 @@ func (p PodTemplateSpec) setAndValidateResourceRequirements(containers []corev1.
 	return nil
 }
 
-func (p PodTemplateSpec) validateMemoryRequirements(container corev1.Container, limitRangeMemory limitrange.Config) error {
+func (p *PodTemplateSpec) validateMemoryRequirements(container corev1.Container, limitRangeMemory limitrange.Config) error {
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
@@ -73,24 +77,33 @@ func (p PodTemplateSpec) validateMemoryRequirements(container corev1.Container, 
 	return nil
 }
 
-func (p PodTemplateSpec) setMemoryRequest(container *corev1.Container, limitRangeMemory limitrange.Config) {
+func (p *PodTemplateSpec) setMemoryRequest(container *corev1.Container, limitRangeMemory limitrange.Config) {
 	memoryRequest := container.Resources.Requests.Memory()
-	if !memoryRequest.IsZero() || !limitRangeMemory.HasDefaultRequest {
+	memoryLimit := container.Resources.Limits.Memory()
+
+	if !memoryRequest.IsZero() {
 		return
 	}
 
 	if container.Resources.Requests == nil {
 		container.Resources.Requests = corev1.ResourceList{}
 	}
-	container.Resources.Requests[corev1.ResourceMemory] = limitRangeMemory.DefaultRequest
+
+	if !memoryLimit.IsZero() {
+		container.Resources.Requests[corev1.ResourceMemory] = *memoryLimit
+	} else if limitRangeMemory.HasDefaultRequest {
+		container.Resources.Requests[corev1.ResourceMemory] = limitRangeMemory.DefaultRequest
+	} else if limitRangeMemory.HasDefaultLimit {
+		container.Resources.Requests[corev1.ResourceMemory] = limitRangeMemory.DefaultLimit
+	}
 }
 
-func (p PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRangeMemory limitrange.Config) error {
+func (p *PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRangeMemory limitrange.Config) {
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
 	if !memoryLimit.IsZero() {
-		return nil
+		return
 	}
 
 	if container.Resources.Limits == nil {
@@ -102,17 +115,11 @@ func (p PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRangeM
 	if limitRangeMemory.HasMaxLimitRequestRatio && !memoryRequest.IsZero() {
 		calculatedLimit = quantity.Mul(*memoryRequest, limitRangeMemory.MaxLimitRequestRatio)
 	} else {
-		ratioMemoryLimit, err := quantity.MulFloat64(*memoryRequest, p.defaultMemoryLimitRequestRatio)
-		if err != nil {
-			return err
-		}
-
+		ratioMemoryLimit := quantity.Mul(*memoryRequest, p.defaultMemoryLimitRequestRatio)
 		calculatedLimit = quantity.Max(limitRangeMemory.DefaultLimit, ratioMemoryLimit)
 	}
 
 	if !calculatedLimit.IsZero() {
 		container.Resources.Limits[corev1.ResourceMemory] = calculatedLimit
 	}
-
-	return nil
 }
