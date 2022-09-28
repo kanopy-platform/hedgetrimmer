@@ -136,12 +136,12 @@ func TestMutate(t *testing.T) {
 
 				// round up to scale 0 to avoid Scale differences
 				if len(input.Spec.InitContainers) > 0 {
-					roundUpContainersResourceQuantityScale(want.Spec.InitContainers, corev1.ResourceMemory, 0)
-					roundUpContainersResourceQuantityScale(result.Spec.InitContainers, corev1.ResourceMemory, 0)
+					roundUpContainersQuantityScale(want.Spec.InitContainers, corev1.ResourceMemory, 0)
+					roundUpContainersQuantityScale(result.Spec.InitContainers, corev1.ResourceMemory, 0)
 				}
 				if len(input.Spec.Containers) > 0 {
-					roundUpContainersResourceQuantityScale(want.Spec.Containers, corev1.ResourceMemory, 0)
-					roundUpContainersResourceQuantityScale(result.Spec.Containers, corev1.ResourceMemory, 0)
+					roundUpContainersQuantityScale(want.Spec.Containers, corev1.ResourceMemory, 0)
+					roundUpContainersQuantityScale(result.Spec.Containers, corev1.ResourceMemory, 0)
 				}
 
 				assert.Equal(t, want, result, test.msg)
@@ -379,8 +379,8 @@ func TestSetMemoryLimit(t *testing.T) {
 		assert.NoError(t, err, test.msg)
 
 		// round up to scale 0 to avoid Scale differences
-		roundUpResourceQuantityToScale(container, corev1.ResourceMemory, 0)
-		roundUpResourceQuantityToScale(wantContainer, corev1.ResourceMemory, 0)
+		roundUpContainerQuantityToScale(container, corev1.ResourceMemory, 0)
+		roundUpContainerQuantityToScale(wantContainer, corev1.ResourceMemory, 0)
 
 		assert.Equal(t, wantContainer, container, test.msg)
 	}
@@ -394,14 +394,14 @@ func roundUpQuantityToScale(list corev1.ResourceList, name corev1.ResourceName, 
 }
 
 // convenience function for testing only
-func roundUpResourceQuantityToScale(container *corev1.Container, name corev1.ResourceName, scale resource.Scale) {
+func roundUpContainerQuantityToScale(container *corev1.Container, name corev1.ResourceName, scale resource.Scale) {
 	roundUpQuantityToScale(container.Resources.Requests, name, scale)
 	roundUpQuantityToScale(container.Resources.Limits, name, scale)
 }
 
 // convenience function for testing only
-func roundUpContainersResourceQuantityScale(containers []corev1.Container, name corev1.ResourceName, scale resource.Scale) {
+func roundUpContainersQuantityScale(containers []corev1.Container, name corev1.ResourceName, scale resource.Scale) {
 	for idx := range containers {
-		roundUpResourceQuantityToScale(&containers[idx], name, scale)
+		roundUpContainerQuantityToScale(&containers[idx], name, scale)
 	}
 }
