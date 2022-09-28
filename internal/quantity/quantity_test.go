@@ -238,7 +238,7 @@ func TestDiv(t *testing.T) {
 			msg:               "Div(parsed BinarySI, parsed DecimalSI)",
 		},
 		{
-			// 12345600 / -0.003456 = -3572222222.222222...
+			// 12345600 / -0.003456 = -3572222222...
 			inputA:            *resource.NewDecimalQuantity(*inf.NewDec(123456, -2), resource.DecimalSI),
 			inputB:            *resource.NewDecimalQuantity(*inf.NewDec(-3456, 6), resource.DecimalSI),
 			scale:             8,

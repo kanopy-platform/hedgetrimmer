@@ -13,7 +13,7 @@ type PodTemplateSpec struct {
 	defaultMemoryLimitRequestRatio float64
 }
 
-func NewPtsMutator(defaultMemoryLimitRequestRatio float64) PodTemplateSpec {
+func NewPodTemplateSpec(defaultMemoryLimitRequestRatio float64) PodTemplateSpec {
 	return PodTemplateSpec{
 		defaultMemoryLimitRequestRatio: defaultMemoryLimitRequestRatio,
 	}

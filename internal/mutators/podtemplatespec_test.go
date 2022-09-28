@@ -16,10 +16,9 @@ var testPts PodTemplateSpec
 const testDefaultMaxLimitRequestRatio float64 = 1.1
 
 func TestMain(m *testing.M) {
-	testPts = NewPtsMutator(testDefaultMaxLimitRequestRatio)
+	testPts = NewPodTemplateSpec(testDefaultMaxLimitRequestRatio)
 
-	exitVal := m.Run()
-	os.Exit(exitVal)
+	os.Exit(m.Run())
 }
 
 func TestMutate(t *testing.T) {
@@ -386,20 +385,18 @@ func TestSetMemoryLimit(t *testing.T) {
 	}
 }
 
-// convenience function for testing only
 func roundUpQuantityToScale(list corev1.ResourceList, name corev1.ResourceName, scale resource.Scale) {
 	if request, ok := list[name]; ok {
-		list[name] = quantity.RoundUp(request, scale)
+		request.RoundUp(scale)
+		list[name] = request
 	}
 }
 
-// convenience function for testing only
 func roundUpContainerQuantityToScale(container *corev1.Container, name corev1.ResourceName, scale resource.Scale) {
 	roundUpQuantityToScale(container.Resources.Requests, name, scale)
 	roundUpQuantityToScale(container.Resources.Limits, name, scale)
 }
 
-// convenience function for testing only
 func roundUpContainersQuantityScale(containers []corev1.Container, name corev1.ResourceName, scale resource.Scale) {
 	for idx := range containers {
 		roundUpContainerQuantityToScale(&containers[idx], name, scale)
