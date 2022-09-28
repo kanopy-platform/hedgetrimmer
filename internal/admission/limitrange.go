@@ -7,5 +7,5 @@ import (
 
 type LimitRanger interface {
 	corev1Listers.LimitRangeLister
-	NewConfig(namespace string) limitrange.Config
+	NewConfig(namespace string) (*limitrange.Config, error)
 }
