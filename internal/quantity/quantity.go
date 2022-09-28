@@ -36,19 +36,45 @@ func MulFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
 	return Mul(x, yQuantity), nil
 }
 
-func Div(x resource.Quantity, y resource.Quantity) resource.Quantity {
+func Div(x resource.Quantity, y resource.Quantity, s inf.Scale) resource.Quantity {
 	result := resource.Quantity{}
 	result.Format = x.Format
 
-	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), 0, inf.RoundUp)
+	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), s, inf.RoundUp)
 	return result
 }
 
-func DivFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
+func DivFloat64(x resource.Quantity, y float64, s inf.Scale) (resource.Quantity, error) {
 	yQuantity, err := resource.ParseQuantity(fmt.Sprintf("%v", y))
 	if err != nil {
 		return x, err
 	}
 
-	return Div(x, yQuantity), nil
+	return Div(x, yQuantity, s), nil
+}
+
+func Min(x resource.Quantity, y resource.Quantity) resource.Quantity {
+	xCopy := x.DeepCopy()
+	yCopy := y.DeepCopy()
+
+	if xCopy.Cmp(yCopy) == -1 {
+		return xCopy
+	}
+
+	return yCopy
+}
+
+func Max(x resource.Quantity, y resource.Quantity) resource.Quantity {
+	xCopy := x.DeepCopy()
+	yCopy := y.DeepCopy()
+
+	if xCopy.Cmp(yCopy) == -1 {
+		return yCopy
+	}
+
+	return xCopy
+}
+
+func Ptr(q resource.Quantity) *resource.Quantity {
+	return &q
 }
