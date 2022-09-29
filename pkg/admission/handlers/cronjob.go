@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -52,12 +51,4 @@ func (ch *CronjobHandler) Handle(ctx context.Context, req admissionruntime.Reque
 
 func (ch *CronjobHandler) Kind() string {
 	return "CronJob"
-}
-
-func (ch *CronjobHandler) InjectDecoder(d *admissionruntime.Decoder) error {
-	if d == nil {
-		return fmt.Errorf("decoder cannot be nil")
-	}
-	ch.Decoder = d
-	return nil
 }
