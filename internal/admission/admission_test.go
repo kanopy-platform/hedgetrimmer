@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers"
+	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,6 +22,23 @@ import (
 )
 
 var cfg *rest.Config
+
+type MockLimitRanger struct {
+	lrc *limitrange.Config
+	err error
+}
+
+func (mlr *MockLimitRanger) SetConfig(lrc *limitrange.Config) {
+	mlr.lrc = lrc
+}
+
+func (mlr *MockLimitRanger) SetErr(err error) {
+	mlr.err = err
+}
+
+func (mlr *MockLimitRanger) LimitRangeConfig(namespace string) (*limitrange.Config, error) {
+	return mlr.lrc, mlr.err
+}
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -48,7 +65,8 @@ func TestMain(m *testing.M) {
 
 func TestNewAdmissionRouter(t *testing.T) {
 	t.Parallel()
-	r, err := NewRouter()
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr)
 	assert.NoError(t, err)
 	assert.NotNil(t, r)
 
@@ -59,7 +77,8 @@ func TestIntegrationSetupWithManager(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	r, err := NewRouter()
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr)
 	assert.NoError(t, err)
 	m, err := manager.New(cfg, manager.Options{
 		Scheme: &runtime.Scheme{},
@@ -73,14 +92,16 @@ func TestIntegrationSetupWithManager(t *testing.T) {
 
 func TestWithAdmissonHandlers_AddHandler(t *testing.T) {
 	t.Parallel()
-	r, err := NewRouter(WithAdmissionHandlers(&MockDeploymentHandler{}))
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}))
 	assert.NoError(t, err)
 	assert.Len(t, r.handlers, 1)
 }
 
 func TestWithAdmissionHandlers_AddDuplciateHandlerFails(t *testing.T) {
 	t.Parallel()
-	r, err := NewRouter(WithAdmissionHandlers(&MockDeploymentHandler{}, &MockDeploymentHandler{}))
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}, &MockDeploymentHandler{}))
 	assert.Error(t, err)
 	assert.Nil(t, r)
 }
@@ -90,7 +111,10 @@ func TestAllowObjects(t *testing.T) {
 	scheme := runtime.NewScheme()
 	decoder, err := admission.NewDecoder(scheme)
 	assert.NoError(t, err)
-	r, err := NewRouter(WithAdmissionHandlers(&MockDeploymentHandler{}, &MockReplicaSetHandler{}))
+	mlr := &MockLimitRanger{
+		lrc: &limitrange.Config{},
+	}
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}, &MockReplicaSetHandler{}))
 	assert.NoError(t, err)
 	assert.NoError(t, r.InjectDecoder(decoder))
 
@@ -149,8 +173,26 @@ func TestAllowObjects(t *testing.T) {
 	}
 }
 
+type MockHandler struct {
+	decoder *admission.Decoder
+}
+
+func (m *MockHandler) InjectDecoder(dec *admission.Decoder) error {
+	m.decoder = dec
+	return nil
+}
+
+func (m *MockHandler) PatchResponse(raw []byte, v interface{}) admission.Response {
+	pjson, err := json.Marshal(v)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	return admission.PatchResponseFromRaw(raw, pjson)
+}
+
 type MockDeploymentHandler struct {
-	handlers.DefaultHandler
+	MockHandler
 }
 
 func (d *MockDeploymentHandler) Kind() string {
@@ -159,7 +201,7 @@ func (d *MockDeploymentHandler) Kind() string {
 
 func (d *MockDeploymentHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
 	deployment := &appsv1.Deployment{}
-	if err := d.Decoder.Decode(req, deployment); err != nil {
+	if err := d.decoder.Decode(req, deployment); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
@@ -176,7 +218,7 @@ func (d *MockDeploymentHandler) mutate(dp *appsv1.Deployment) *appsv1.Deployment
 }
 
 type MockReplicaSetHandler struct {
-	handlers.DefaultHandler
+	MockHandler
 }
 
 func (r *MockReplicaSetHandler) Kind() string {
@@ -187,7 +229,7 @@ func (r *MockReplicaSetHandler) Handle(ctx context.Context, req admission.Reques
 
 	rs := &appsv1.ReplicaSet{}
 
-	if err := r.Decoder.Decode(req, rs); err != nil {
+	if err := r.decoder.Decode(req, rs); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 

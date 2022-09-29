@@ -10,6 +10,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+type LimitRangeContextType string
+
+const LimitRangeContextTypeMemory LimitRangeContextType = "memory"
+
 type AdmissionHandler interface {
 	admission.Handler
 	Kind() string
@@ -31,12 +35,14 @@ func WithAdmissionHandlers(handlers ...AdmissionHandler) OptionsFunc {
 }
 
 type Router struct {
-	handlers map[string]AdmissionHandler
+	handlers    map[string]AdmissionHandler
+	limitRanger LimitRanger
 }
 
-func NewRouter(opts ...OptionsFunc) (*Router, error) {
+func NewRouter(lr LimitRanger, opts ...OptionsFunc) (*Router, error) {
 	r := &Router{
-		handlers: map[string]AdmissionHandler{},
+		handlers:    map[string]AdmissionHandler{},
+		limitRanger: lr,
 	}
 
 	for _, opt := range opts {
@@ -65,9 +71,20 @@ func (r *Router) InjectDecoder(d *admission.Decoder) error {
 }
 
 func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Response {
-	if h, ok := r.handlers[req.RequestKind.Kind]; ok {
-		return h.Handle(ctx, req)
+	h, ok := r.handlers[req.RequestKind.Kind]
+	if !ok {
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf("resource %s not implemented", req.RequestKind.Kind))
 	}
 
-	return admission.Errored(http.StatusBadRequest, fmt.Errorf("resource %s not implemented", req.RequestKind.Kind))
+	cfg, err := r.limitRanger.LimitRangeConfig(req.Namespace)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf("failed to retrieve limit range information from namespace %s: %s", req.Namespace, err.Error()))
+	}
+
+	if cfg == nil {
+		return admission.Allowed(fmt.Sprintf("No container limit range in namespace: %s", req.Namespace))
+	}
+
+	ctx = context.WithValue(ctx, LimitRangeContextTypeMemory, cfg)
+	return h.Handle(ctx, req)
 }
