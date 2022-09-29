@@ -9,6 +9,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+type DefaultDecoderInjector struct {
+	decoder *admission.Decoder
+}
+
+func (d *Decoder) InjectDecoder(d *admission.Decoder) error {
+	d.decoder = d
+	return nil
+}
+
 type DefaultHandler struct {
 	Decoder *admission.Decoder
 }

@@ -36,13 +36,12 @@ func (mm *MockMutator) Mutate(inputs corev1.PodTemplateSpec, config *limitrange.
 func TestSTSHandler(t *testing.T) {
 	t.Parallel()
 	mm := MockMutator{}
-	mlr := MockLimitRanger{}
 
 	scheme := runtime.NewScheme()
 	decoder, err := admission.NewDecoder(scheme)
 	assert.NoError(t, err)
 
-	handler := NewSTSHandler(&mm, &mlr)
+	handler := NewSTSHandler(&mm)
 
 	assert.NoError(t, handler.InjectDecoder(decoder))
 
@@ -99,12 +98,13 @@ func TestSTSHandler(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		mlr.SetConfig(test.config)
 		mlr.SetErr(test.lrerr)
 		mm.SetSpec(test.pts)
 		mm.SetErr(test.merr)
 
-		resp := handler.Handle(context.TODO(), admission.Request{AdmissionRequest: ar})
+		ctx := context.WithValue(ctx.Background(), LimitRangeContextTypeMemory, test.config)
+
+		resp := handler.Handle(ctx, admission.Request{AdmissionRequest: ar})
 		assert.Equal(t, test.reject, !resp.Allowed, test.msg)
 		assert.Equal(t, test.mutated, len(resp.Patches) > 0)
 	}

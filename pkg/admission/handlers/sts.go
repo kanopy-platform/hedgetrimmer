@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	kadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type STSHandler struct {
-	decoder *admission.Decoder
-	ptm     PodTemplateSpecMutator
+	DefaultDecoderInjector
+	ptm admission.PodTemplateSpecMutator
 }
 
 func NewSTSHandler(ptm PodTemplateSpecMutator) *STSHandler {
@@ -21,11 +22,6 @@ func NewSTSHandler(ptm PodTemplateSpecMutator) *STSHandler {
 }
 
 func (sts *STSHandler) Kind() string { return "StatefulSet" }
-
-func (sts *STSHandler) InjectDecoder(d *admission.Decoder) error {
-	sts.decoder = d
-	return nil
-}
 
 func (sts *STSHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := log.FromContext(ctx)
@@ -35,14 +31,14 @@ func (sts *STSHandler) Handle(ctx context.Context, req admission.Request) admiss
 		reason := fmt.Sprintf("failed to list LimitRanges in namespace: %s", req.Namespace)
 		log.Error(err, reason)
 		//If we cannot get LimitRanges due to an api error fail.
-		return admission.Denied(reason)
+		return kadmission.Denied(reason)
 	}
 
 	in := &appsv1.StatefulSet{}
 	err := sts.decoder.Decode(req, in)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("failed to decode statefulset requests: %s", req.Name))
-		return admission.Errored(http.StatusBadRequest, err)
+		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
 	var out appsv1.StatefulSet
@@ -52,7 +48,7 @@ func (sts *STSHandler) Handle(ctx context.Context, req admission.Request) admiss
 	if err != nil {
 		reason := fmt.Sprintf("Failed to mutate statefulset %s/%s: %s", in.Namespace, in.Name, err)
 		log.Error(err, reason)
-		return admission.Denied(reason)
+		return kadmission.Denied(reason)
 	}
 
 	out.Spec.Template = pts
@@ -61,9 +57,9 @@ func (sts *STSHandler) Handle(ctx context.Context, req admission.Request) admiss
 	if err != nil {
 		reason := fmt.Sprintf("Failed to marhsal statefulset %s/%s: %s", in.Namespace, in.Name, err)
 		log.Error(err, reason)
-		return admission.Denied(reason)
+		return kadmission.Denied(reason)
 	}
 
-	return admission.PatchResponseFromRaw(req.Object.Raw, jout)
+	return kadmission.PatchResponseFromRaw(req.Object.Raw, jout)
 
 }
