@@ -9,7 +9,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -149,8 +148,26 @@ func TestAllowObjects(t *testing.T) {
 	}
 }
 
+type MockHandler struct {
+	decoder *admission.Decoder
+}
+
+func (m *MockHandler) InjectDecoder(dec *admission.Decoder) error {
+	m.decoder = dec
+	return nil
+}
+
+func (m *MockHandler) PatchResponse(raw []byte, v interface{}) admission.Response {
+	pjson, err := json.Marshal(v)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	return admission.PatchResponseFromRaw(raw, pjson)
+}
+
 type MockDeploymentHandler struct {
-	handlers.DefaultHandler
+	MockHandler
 }
 
 func (d *MockDeploymentHandler) Kind() string {
@@ -159,7 +176,7 @@ func (d *MockDeploymentHandler) Kind() string {
 
 func (d *MockDeploymentHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
 	deployment := &appsv1.Deployment{}
-	if err := d.Decoder.Decode(req, deployment); err != nil {
+	if err := d.decoder.Decode(req, deployment); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
@@ -176,7 +193,7 @@ func (d *MockDeploymentHandler) mutate(dp *appsv1.Deployment) *appsv1.Deployment
 }
 
 type MockReplicaSetHandler struct {
-	handlers.DefaultHandler
+	MockHandler
 }
 
 func (r *MockReplicaSetHandler) Kind() string {
@@ -187,7 +204,7 @@ func (r *MockReplicaSetHandler) Handle(ctx context.Context, req admission.Reques
 
 	rs := &appsv1.ReplicaSet{}
 
-	if err := r.Decoder.Decode(req, rs); err != nil {
+	if err := r.decoder.Decode(req, rs); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
