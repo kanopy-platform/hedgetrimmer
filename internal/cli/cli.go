@@ -2,17 +2,22 @@ package cli
 
 import (
 	"strings"
+	"time"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
+	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	klog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -104,8 +109,21 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	if err := configureHealthChecks(mgr); err != nil {
 		return err
 	}
+	cs, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return err
+	}
 
-	admissionRouter, err := admission.NewRouter()
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(cs, 1*time.Minute)
+	informerFactory.Start(wait.NeverStop)
+	informerFactory.WaitForCacheSync(wait.NeverStop)
+
+	lri := informerFactory.Core().V1().LimitRanges()
+
+	limitRanger := limitrange.NewLimitRanger(lri.Lister())
+
+	admissionRouter, err := admission.NewRouter(limitRanger)
+
 	if err != nil {
 		return err
 	}

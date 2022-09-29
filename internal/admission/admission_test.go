@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,6 +22,23 @@ import (
 )
 
 var cfg *rest.Config
+
+type MockLimitRanger struct {
+	lrc *limitrange.Config
+	err error
+}
+
+func (mlr *MockLimitRanger) SetConfig(lrc *limitrange.Config) {
+	mlr.lrc = lrc
+}
+
+func (mlr *MockLimitRanger) SetErr(err error) {
+	mlr.err = err
+}
+
+func (mlr *MockLimitRanger) LimitRangeConfig(namespace string) (*limitrange.Config, error) {
+	return mlr.lrc, mlr.err
+}
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -47,7 +65,8 @@ func TestMain(m *testing.M) {
 
 func TestNewAdmissionRouter(t *testing.T) {
 	t.Parallel()
-	r, err := NewRouter()
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr)
 	assert.NoError(t, err)
 	assert.NotNil(t, r)
 
@@ -58,7 +77,8 @@ func TestIntegrationSetupWithManager(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	r, err := NewRouter()
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr)
 	assert.NoError(t, err)
 	m, err := manager.New(cfg, manager.Options{
 		Scheme: &runtime.Scheme{},
@@ -72,14 +92,16 @@ func TestIntegrationSetupWithManager(t *testing.T) {
 
 func TestWithAdmissonHandlers_AddHandler(t *testing.T) {
 	t.Parallel()
-	r, err := NewRouter(WithAdmissionHandlers(&MockDeploymentHandler{}))
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}))
 	assert.NoError(t, err)
 	assert.Len(t, r.handlers, 1)
 }
 
 func TestWithAdmissionHandlers_AddDuplciateHandlerFails(t *testing.T) {
 	t.Parallel()
-	r, err := NewRouter(WithAdmissionHandlers(&MockDeploymentHandler{}, &MockDeploymentHandler{}))
+	mlr := &MockLimitRanger{}
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}, &MockDeploymentHandler{}))
 	assert.Error(t, err)
 	assert.Nil(t, r)
 }
@@ -89,7 +111,10 @@ func TestAllowObjects(t *testing.T) {
 	scheme := runtime.NewScheme()
 	decoder, err := admission.NewDecoder(scheme)
 	assert.NoError(t, err)
-	r, err := NewRouter(WithAdmissionHandlers(&MockDeploymentHandler{}, &MockReplicaSetHandler{}))
+	mlr := &MockLimitRanger{
+		lrc: &limitrange.Config{},
+	}
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}, &MockReplicaSetHandler{}))
 	assert.NoError(t, err)
 	assert.NoError(t, r.InjectDecoder(decoder))
 
