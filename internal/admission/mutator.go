@@ -6,5 +6,5 @@ import (
 )
 
 type PodTemplateSpecMutator interface {
-	Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemory limitrange.Config) (corev1.PodTemplateSpec, error)
+	Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemory *limitrange.Config) (corev1.PodTemplateSpec, error)
 }
