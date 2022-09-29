@@ -14,12 +14,14 @@ import (
 
 type CronjobHandler struct {
 	DefaultHandler
-	mutator admission.PodTemplateSpecMutator
+	mutator     admission.PodTemplateSpecMutator
+	limitranger admission.LimitRanger
 }
 
-func NewCronjobHandler(mutator admission.PodTemplateSpecMutator) *CronjobHandler {
+func NewCronjobHandler(mutator admission.PodTemplateSpecMutator, limitranger admission.LimitRanger) *CronjobHandler {
 	return &CronjobHandler{
-		mutator: mutator,
+		mutator:     mutator,
+		limitranger: limitranger,
 	}
 }
 
@@ -27,9 +29,23 @@ func (ch *CronjobHandler) Handle(ctx context.Context, req admissionruntime.Reque
 	cronjob := &batchv1.CronJob{}
 
 	if err := ch.Decoder.Decode(req, cronjob); err != nil {
-		klog.Log.Info("failed to decode resource")
+		klog.Log.Error(err, "failed to decode resource")
 		return admissionruntime.Errored(http.StatusBadRequest, err)
 	}
+
+	config, err := ch.limitranger.LimitRangeConfig(cronjob.Namespace)
+	if err != nil {
+		klog.Log.Error(err, "failed to get LimitRange config for namespace %s", cronjob.Namespace)
+		return admissionruntime.Errored(http.StatusBadRequest, err)
+	}
+
+	mutatedSpec, err := ch.mutator.Mutate(cronjob.Spec.JobTemplate.Spec.Template, config)
+	if err != nil {
+		klog.Log.Error(err, "failed to mutate CronJob PodTemplateSpec")
+		return admissionruntime.Errored(http.StatusBadRequest, err)
+	}
+
+	cronjob.Spec.JobTemplate.Spec.Template = mutatedSpec
 
 	return ch.PatchResponse(req.Object.Raw, cronjob)
 }
