@@ -1,4 +1,4 @@
-package admission
+package handlers
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
+	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	kadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -17,19 +18,19 @@ type STSHandler struct {
 	ptm admission.PodTemplateSpecMutator
 }
 
-func NewSTSHandler(ptm PodTemplateSpecMutator) *STSHandler {
+func NewSTSHandler(ptm admission.PodTemplateSpecMutator) *STSHandler {
 	return &STSHandler{ptm: ptm}
 }
 
 func (sts *STSHandler) Kind() string { return "StatefulSet" }
 
-func (sts *STSHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
+func (sts *STSHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
 	log := log.FromContext(ctx)
 
-	lrConfig := ctx.Value(LimitRangeContextTypeMemory)
+	lrConfig := ctx.Value(admission.LimitRangeContextTypeMemory).(*limitrange.Config)
 	if lrConfig == nil {
 		reason := fmt.Sprintf("failed to list LimitRanges in namespace: %s", req.Namespace)
-		log.Error(err, reason)
+		log.Error(fmt.Errorf(reason), reason)
 		//If we cannot get LimitRanges due to an api error fail.
 		return kadmission.Denied(reason)
 	}

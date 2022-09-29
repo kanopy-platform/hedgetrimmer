@@ -13,8 +13,8 @@ type DefaultDecoderInjector struct {
 	decoder *admission.Decoder
 }
 
-func (d *Decoder) InjectDecoder(d *admission.Decoder) error {
-	d.decoder = d
+func (d *DefaultDecoderInjector) InjectDecoder(decoder *admission.Decoder) error {
+	d.decoder = decoder
 	return nil
 }
 
