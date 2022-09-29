@@ -13,11 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	corev1Listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -37,13 +34,6 @@ func (mlr *MockLimitRanger) SetConfig(lrc *limitrange.Config) {
 
 func (mlr *MockLimitRanger) SetErr(err error) {
 	mlr.err = err
-}
-
-func (mlr *MockLimitRanger) List(selector labels.Selector) (ret []*corev1.LimitRange, err error) {
-	return
-}
-func (mlr *MockLimitRanger) LimitRanges(namespace string) corev1Listers.LimitRangeNamespaceLister {
-	return nil
 }
 
 func (mlr *MockLimitRanger) LimitRangeConfig(namespace string) (*limitrange.Config, error) {

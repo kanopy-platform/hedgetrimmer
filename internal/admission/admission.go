@@ -12,7 +12,7 @@ import (
 
 type LimitRangeContextType string
 
-const LimitRangeContextTypeMemory = "memory"
+const LimitRangeContextTypeMemory LimitRangeContextType = "memory"
 
 type AdmissionHandler interface {
 	admission.Handler
