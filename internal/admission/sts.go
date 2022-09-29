@@ -54,7 +54,7 @@ func (sts *STSHandler) Handle(ctx context.Context, req admission.Request) admiss
 	var out appsv1.StatefulSet
 	in.DeepCopyInto(&out)
 
-	pts, err := sts.ptm.Mutate(out.Spec.Template, *lrConfig)
+	pts, err := sts.ptm.Mutate(out.Spec.Template, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("Failed to mutate statefulset %s/%s: %s", in.Namespace, in.Name, err)
 		log.Error(err, reason)

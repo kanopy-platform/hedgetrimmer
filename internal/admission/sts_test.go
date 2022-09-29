@@ -55,7 +55,7 @@ func (mm *MockMutator) SetErr(err error) {
 	mm.err = err
 }
 
-func (mm *MockMutator) Mutate(inputs corev1.PodTemplateSpec, config limitrange.Config) (corev1.PodTemplateSpec, error) {
+func (mm *MockMutator) Mutate(inputs corev1.PodTemplateSpec, config *limitrange.Config) (corev1.PodTemplateSpec, error) {
 	return mm.spec, mm.err
 }
 
