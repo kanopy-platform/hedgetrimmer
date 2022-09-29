@@ -12,35 +12,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	corev1Listers "k8s.io/client-go/listers/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
-
-type MockLimitRanger struct {
-	lrc *limitrange.Config
-	err error
-}
-
-func (mlr *MockLimitRanger) SetConfig(lrc *limitrange.Config) {
-	mlr.lrc = lrc
-}
-
-func (mlr *MockLimitRanger) SetErr(err error) {
-	mlr.err = err
-}
-
-func (mlr *MockLimitRanger) List(selector labels.Selector) (ret []*corev1.LimitRange, err error) {
-	return
-}
-func (mlr *MockLimitRanger) LimitRanges(namespace string) corev1Listers.LimitRangeNamespaceLister {
-	return nil
-}
-
-func (mlr *MockLimitRanger) LimitRangeConfig(namespace string) (*limitrange.Config, error) {
-	return mlr.lrc, mlr.err
-}
 
 type MockMutator struct {
 	spec corev1.PodTemplateSpec

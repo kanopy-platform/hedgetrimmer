@@ -14,11 +14,10 @@ import (
 type STSHandler struct {
 	decoder *admission.Decoder
 	ptm     PodTemplateSpecMutator
-	lr      LimitRanger
 }
 
-func NewSTSHandler(ptm PodTemplateSpecMutator, lr LimitRanger) *STSHandler {
-	return &STSHandler{ptm: ptm, lr: lr}
+func NewSTSHandler(ptm PodTemplateSpecMutator) *STSHandler {
+	return &STSHandler{ptm: ptm}
 }
 
 func (sts *STSHandler) Kind() string { return "StatefulSet" }
@@ -31,24 +30,19 @@ func (sts *STSHandler) InjectDecoder(d *admission.Decoder) error {
 func (sts *STSHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := log.FromContext(ctx)
 
-	in := &appsv1.StatefulSet{}
-	err := sts.decoder.Decode(req, in)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to decode statefulset requests: %s", req.Name))
-		return admission.Errored(http.StatusBadRequest, err)
-	}
-
-	lrConfig, err := sts.lr.LimitRangeConfig(in.Namespace)
-	if err != nil {
-		reason := fmt.Sprintf("Failed to list LimitRanges in namespace: %s", in.Namespace)
+	lrConfig := ctx.Value(LimitRangeContextTypeMemory)
+	if lrConfig == nil {
+		reason := fmt.Sprintf("failed to list LimitRanges in namespace: %s", req.Namespace)
 		log.Error(err, reason)
 		//If we cannot get LimitRanges due to an api error fail.
 		return admission.Denied(reason)
 	}
 
-	if lrConfig == nil {
-		// If there are no Limit Ranges in the target namespace, workloads go un-mutated
-		return admission.Allowed(fmt.Sprintf("No limit range in namespace: %s", in.Namespace))
+	in := &appsv1.StatefulSet{}
+	err := sts.decoder.Decode(req, in)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("failed to decode statefulset requests: %s", req.Name))
+		return admission.Errored(http.StatusBadRequest, err)
 	}
 
 	var out appsv1.StatefulSet
