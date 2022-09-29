@@ -50,13 +50,7 @@ func TestCronjobHandler_Handle(t *testing.T) {
 			Name:      "test-cronjob",
 			Namespace: "test-ns",
 		},
-		Spec: batchv1.CronJobSpec{
-			JobTemplate: batchv1.JobTemplateSpec{
-				Spec: batchv1.JobSpec{
-					Template: corev1.PodTemplateSpec{},
-				},
-			},
-		},
+		Spec: batchv1.CronJobSpec{},
 	}
 
 	cronjobBytes, err := json.Marshal(cronjob)
