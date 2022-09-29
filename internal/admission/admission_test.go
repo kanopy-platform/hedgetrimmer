@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers/common"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -150,7 +150,8 @@ func TestAllowObjects(t *testing.T) {
 }
 
 type MockDeploymentHandler struct {
-	handlers.DefaultHandler
+	common.Decode
+	common.Patch
 }
 
 func (d *MockDeploymentHandler) Kind() string {
@@ -176,7 +177,8 @@ func (d *MockDeploymentHandler) mutate(dp *appsv1.Deployment) *appsv1.Deployment
 }
 
 type MockReplicaSetHandler struct {
-	handlers.DefaultHandler
+	common.Decode
+	common.Patch
 }
 
 func (r *MockReplicaSetHandler) Kind() string {
