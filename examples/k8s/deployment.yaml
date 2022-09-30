@@ -127,4 +127,5 @@ webhooks:
     - UPDATE
     resources:
     - statefulsets
+    - deployments
     scope: "Namespaced"
