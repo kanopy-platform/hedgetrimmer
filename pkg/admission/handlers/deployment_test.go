@@ -9,24 +9,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func TestStatefulSetHandler(t *testing.T) {
+func TestDeploymentHandler(t *testing.T) {
 	t.Parallel()
 	mm := MockMutator{}
 
 	scheme := runtime.NewScheme()
 	decoder := assertDecoder(t, scheme)
 
-	handler := NewStatefulSetHandler(&mm)
+	handler := NewDeploymentHandler(&mm)
 
 	assert.NoError(t, handler.InjectDecoder(decoder))
 
-	sts := appsv1.StatefulSet{
+	d := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-sts",
+			Name:      "test-d",
 			Namespace: "test-ns",
 		},
-		Spec: appsv1.StatefulSetSpec{},
+		Spec: appsv1.DeploymentSpec{},
 	}
 
-	testHandler(t, &sts, &mm, handler)
+	testHandler(t, &d, &mm, handler)
 }
