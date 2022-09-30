@@ -26,16 +26,15 @@ func (sts *STSHandler) Kind() string { return "StatefulSet" }
 func (sts *STSHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
 	log := log.FromContext(ctx)
 
-	lrConfig, ok := ctx.Value(limitrange.LimitRangeContextTypeMemory).(*limitrange.Config)
-	if !ok || lrConfig == nil {
-		reason := fmt.Sprintf("failed to list LimitRanges in namespace: %s", req.Namespace)
-		log.Error(fmt.Errorf(reason), reason)
-		//If we cannot get LimitRanges due to an api error fail.
+	lrConfig, err := limitrange.MemoryConfigFromContext(ctx)
+	if err != nil {
+		reason := fmt.Sprintf("invalid LimitRange config for namespace: %s", req.Namespace)
+		log.Error(err, reason)
 		return kadmission.Denied(reason)
 	}
 
 	in := &appsv1.StatefulSet{}
-	err := sts.decoder.Decode(req, in)
+	err = sts.decoder.Decode(req, in)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("failed to decode statefulset requests: %s", req.Name))
 		return kadmission.Errored(http.StatusBadRequest, err)
