@@ -33,19 +33,16 @@ func (sts *StatefulSetHandler) Handle(ctx context.Context, req kadmission.Reques
 		return kadmission.Denied(reason)
 	}
 
-	in := &appsv1.StatefulSet{}
-	err = sts.decoder.Decode(req, in)
+	out := &appsv1.StatefulSet{}
+	err = sts.decoder.Decode(req, out)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("failed to decode statefulset requests: %s", req.Name))
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	var out appsv1.StatefulSet
-	in.DeepCopyInto(&out)
-
 	pts, err := sts.ptm.Mutate(out.Spec.Template, lrConfig)
 	if err != nil {
-		reason := fmt.Sprintf("failed to mutate statefulset %s/%s: %s", in.Namespace, in.Name, err)
+		reason := fmt.Sprintf("failed to mutate statefulset %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
 		return kadmission.Denied(reason)
 	}
