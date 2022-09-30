@@ -4,12 +4,22 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	corev1Listers "k8s.io/client-go/listers/core/v1"
 )
 
-func IsLimitRangeTypeContainer(lri corev1.LimitRangeItem) bool {
-	return lri.Type == corev1.LimitTypeContainer
+type LimitRangeContextType string
+
+const LimitRangeContextTypeMemory LimitRangeContextType = "memory"
+
+type Config struct {
+	HasDefaultRequest       bool
+	HasDefaultLimit         bool
+	HasMaxLimitRequestRatio bool
+	DefaultLimit            resource.Quantity
+	DefaultRequest          resource.Quantity
+	MaxLimitRequestRatio    resource.Quantity
 }
 
 func NewConfig(lri corev1.LimitRangeItem, resource corev1.ResourceName) Config {
