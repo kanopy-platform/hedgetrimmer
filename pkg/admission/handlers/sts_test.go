@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
-	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	"github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	admission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type MockMutator struct {
@@ -39,7 +38,7 @@ func TestSTSHandler(t *testing.T) {
 	mm := MockMutator{}
 
 	scheme := runtime.NewScheme()
-	decoder, err := kadmission.NewDecoder(scheme)
+	decoder, err := admission.NewDecoder(scheme)
 	assert.NoError(t, err)
 
 	handler := NewSTSHandler(&mm)
@@ -94,9 +93,9 @@ func TestSTSHandler(t *testing.T) {
 		mm.SetSpec(test.pts)
 		mm.SetErr(test.merr)
 
-		ctx := context.WithValue(context.Background(), admission.LimitRangeContextTypeMemory, test.config)
+		ctx := context.WithValue(context.Background(), limitrange.LimitRangeContextTypeMemory, test.config)
 
-		resp := handler.Handle(ctx, kadmission.Request{AdmissionRequest: ar})
+		resp := handler.Handle(ctx, admission.Request{AdmissionRequest: ar})
 		assert.Equal(t, test.reject, !resp.Allowed, test.msg)
 		assert.Equal(t, test.mutated, len(resp.Patches) > 0)
 	}

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
-	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/admission"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	kadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -27,7 +27,7 @@ func (sts *STSHandler) Kind() string { return "StatefulSet" }
 func (sts *STSHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
 	log := log.FromContext(ctx)
 
-	lrConfig := ctx.Value(admission.LimitRangeContextTypeMemory).(*limitrange.Config)
+	lrConfig := ctx.Value(limitrange.LimitRangeContextTypeMemory).(*limitrange.Config)
 	if lrConfig == nil {
 		reason := fmt.Sprintf("failed to list LimitRanges in namespace: %s", req.Namespace)
 		log.Error(fmt.Errorf(reason), reason)
