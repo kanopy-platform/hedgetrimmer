@@ -1,7 +1,7 @@
 package admission
 
 import (
-	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	corev1 "k8s.io/api/core/v1"
 )
 

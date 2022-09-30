@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
 	"github.com/kanopy-platform/hedgetrimmer/internal/quantity"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
