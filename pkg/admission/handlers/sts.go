@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -27,8 +26,8 @@ func (sts *STSHandler) Kind() string { return "StatefulSet" }
 func (sts *STSHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
 	log := log.FromContext(ctx)
 
-	lrConfig := ctx.Value(limitrange.LimitRangeContextTypeMemory).(*limitrange.Config)
-	if lrConfig == nil {
+	lrConfig, ok := ctx.Value(limitrange.LimitRangeContextTypeMemory).(*limitrange.Config)
+	if !ok || lrConfig == nil {
 		reason := fmt.Sprintf("failed to list LimitRanges in namespace: %s", req.Namespace)
 		log.Error(fmt.Errorf(reason), reason)
 		//If we cannot get LimitRanges due to an api error fail.
@@ -54,13 +53,5 @@ func (sts *STSHandler) Handle(ctx context.Context, req kadmission.Request) kadmi
 
 	out.Spec.Template = pts
 
-	jout, err := json.Marshal(out)
-	if err != nil {
-		reason := fmt.Sprintf("Failed to marhsal statefulset %s/%s: %s", in.Namespace, in.Name, err)
-		log.Error(err, reason)
-		return kadmission.Denied(reason)
-	}
-
-	return kadmission.PatchResponseFromRaw(req.Object.Raw, jout)
-
+	return PatchResponse(req.Object.Raw, out)
 }

@@ -16,23 +16,6 @@ import (
 	admission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type MockMutator struct {
-	spec corev1.PodTemplateSpec
-	err  error
-}
-
-func (mm *MockMutator) SetSpec(spec corev1.PodTemplateSpec) {
-	mm.spec = spec
-}
-
-func (mm *MockMutator) SetErr(err error) {
-	mm.err = err
-}
-
-func (mm *MockMutator) Mutate(inputs corev1.PodTemplateSpec, config *limitrange.Config) (corev1.PodTemplateSpec, error) {
-	return mm.spec, mm.err
-}
-
 func TestSTSHandler(t *testing.T) {
 	t.Parallel()
 	mm := MockMutator{}
