@@ -16,7 +16,7 @@ import (
 	admission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func TestSTSHandler(t *testing.T) {
+func TestStatefulSetHandler(t *testing.T) {
 	t.Parallel()
 	mm := MockMutator{}
 
@@ -24,7 +24,7 @@ func TestSTSHandler(t *testing.T) {
 	decoder, err := admission.NewDecoder(scheme)
 	assert.NoError(t, err)
 
-	handler := NewSTSHandler(&mm)
+	handler := NewStatefulSetHandler(&mm)
 
 	assert.NoError(t, handler.InjectDecoder(decoder))
 

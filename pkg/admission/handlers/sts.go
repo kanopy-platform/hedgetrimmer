@@ -12,18 +12,18 @@ import (
 	kadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type STSHandler struct {
+type StatefulSetHandler struct {
 	DefaultDecoderInjector
 	ptm admission.PodTemplateSpecMutator
 }
 
-func NewSTSHandler(ptm admission.PodTemplateSpecMutator) *STSHandler {
-	return &STSHandler{ptm: ptm}
+func NewStatefulSetHandler(ptm admission.PodTemplateSpecMutator) *StatefulSetHandler {
+	return &StatefulSetHandler{ptm: ptm}
 }
 
-func (sts *STSHandler) Kind() string { return "StatefulSet" }
+func (sts *StatefulSetHandler) Kind() string { return "StatefulSet" }
 
-func (sts *STSHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
+func (sts *StatefulSetHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
 	log := log.FromContext(ctx)
 
 	lrConfig, err := limitrange.MemoryConfigFromContext(ctx)
