@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
@@ -117,10 +118,14 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	}
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(cs, 1*time.Minute)
-	informerFactory.Start(wait.NeverStop)
-	informerFactory.WaitForCacheSync(wait.NeverStop)
 
 	lri := informerFactory.Core().V1().LimitRanges()
+	lri.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(new interface{}) {},
+	})
+
+	informerFactory.Start(wait.NeverStop)
+	informerFactory.WaitForCacheSync(wait.NeverStop)
 
 	limitRanger := limitrange.NewLimitRanger(lri.Lister())
 
