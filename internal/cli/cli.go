@@ -11,7 +11,9 @@ import (
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers"
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/mutators"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -122,7 +124,10 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 
 	limitRanger := limitrange.NewLimitRanger(lri.Lister())
 
-	admissionRouter, err := admission.NewRouter(limitRanger)
+	ptm := mutators.NewPodTemplateSpec()
+
+	admissionRouter, err := admission.NewRouter(limitRanger,
+		admission.WithAdmissionHandlers(handlers.NewStatefulSetHandler(ptm)))
 
 	if err != nil {
 		return err

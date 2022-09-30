@@ -82,6 +82,6 @@ func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Re
 		return admission.Allowed(fmt.Sprintf("No container limit range in namespace: %s", req.Namespace))
 	}
 
-	ctx = context.WithValue(ctx, limitrange.LimitRangeContextTypeMemory, cfg)
+	ctx = limitrange.WithMemoryConfig(ctx, cfg)
 	return h.Handle(ctx, req)
 }
