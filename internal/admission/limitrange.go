@@ -1,7 +1,7 @@
 package admission
 
 import (
-	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 )
 
 type LimitRanger interface {

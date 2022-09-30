@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
-
-type LimitRangeContextType string
-
-const LimitRangeContextTypeMemory LimitRangeContextType = "memory"
 
 type AdmissionHandler interface {
 	admission.Handler
@@ -85,6 +82,6 @@ func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Re
 		return admission.Allowed(fmt.Sprintf("No container limit range in namespace: %s", req.Namespace))
 	}
 
-	ctx = context.WithValue(ctx, LimitRangeContextTypeMemory, cfg)
+	ctx = context.WithValue(ctx, limitrange.LimitRangeContextTypeMemory, cfg)
 	return h.Handle(ctx, req)
 }

@@ -10,8 +10,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
-	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
