@@ -132,7 +132,9 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	ptm := mutators.NewPodTemplateSpec()
 
 	admissionRouter, err := admission.NewRouter(limitRanger,
-		admission.WithAdmissionHandlers(handlers.NewStatefulSetHandler(ptm)))
+		admission.WithAdmissionHandlers(
+			handlers.NewStatefulSetHandler(ptm),
+			handlers.NewCronjobHandler(ptm)))
 
 	if err != nil {
 		return err
