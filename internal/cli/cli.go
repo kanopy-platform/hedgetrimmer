@@ -8,10 +8,13 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
-	"github.com/kanopy-platform/hedgetrimmer/internal/limitrange"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
+	"github.com/kanopy-platform/hedgetrimmer/pkg/mutators"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -115,14 +118,21 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	}
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(cs, 1*time.Minute)
+
+	lri := informerFactory.Core().V1().LimitRanges()
+	lri.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(new interface{}) {},
+	})
+
 	informerFactory.Start(wait.NeverStop)
 	informerFactory.WaitForCacheSync(wait.NeverStop)
 
-	lri := informerFactory.Core().V1().LimitRanges()
-
 	limitRanger := limitrange.NewLimitRanger(lri.Lister())
 
-	admissionRouter, err := admission.NewRouter(limitRanger)
+	ptm := mutators.NewPodTemplateSpec()
+
+	admissionRouter, err := admission.NewRouter(limitRanger,
+		admission.WithAdmissionHandlers(handlers.NewStatefulSetHandler(ptm)))
 
 	if err != nil {
 		return err

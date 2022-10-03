@@ -94,31 +94,6 @@ func TestLimitRanger(t *testing.T) {
 	}
 }
 
-func TestIsLimitRangeTypeContainer(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		limitRange corev1.LimitRangeItem
-		want       bool
-		msg        string
-	}{
-		{
-			limitRange: corev1.LimitRangeItem{Type: corev1.LimitTypeContainer},
-			want:       true,
-			msg:        "Container type",
-		},
-		{
-			limitRange: corev1.LimitRangeItem{Type: corev1.LimitTypePod},
-			want:       false,
-			msg:        "Pod type",
-		},
-	}
-
-	for _, test := range tests {
-		assert.Equal(t, test.want, IsLimitRangeTypeContainer(test.limitRange), test.msg)
-	}
-}
-
 func TestLimitRangeConfig(t *testing.T) {
 	t.Parallel()
 

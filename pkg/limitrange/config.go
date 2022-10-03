@@ -1,15 +1,26 @@
 package limitrange
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	corev1Listers "k8s.io/client-go/listers/core/v1"
 )
 
-func IsLimitRangeTypeContainer(lri corev1.LimitRangeItem) bool {
-	return lri.Type == corev1.LimitTypeContainer
+type LimitRangeContextType string
+
+const LimitRangeContextTypeMemory LimitRangeContextType = "memory"
+
+type Config struct {
+	HasDefaultRequest       bool
+	HasDefaultLimit         bool
+	HasMaxLimitRequestRatio bool
+	DefaultLimit            resource.Quantity
+	DefaultRequest          resource.Quantity
+	MaxLimitRequestRatio    resource.Quantity
 }
 
 func NewConfig(lri corev1.LimitRangeItem, resource corev1.ResourceName) Config {
@@ -20,6 +31,23 @@ func NewConfig(lri corev1.LimitRangeItem, resource corev1.ResourceName) Config {
 	l.MaxLimitRequestRatio, l.HasMaxLimitRequestRatio = lri.MaxLimitRequestRatio[resource]
 
 	return l
+}
+
+func MemoryConfigFromContext(ctx context.Context) (*Config, error) {
+	return configFromContext(ctx, LimitRangeContextTypeMemory)
+}
+
+func WithMemoryConfig(ctx context.Context, cfg *Config) context.Context {
+	return context.WithValue(ctx, LimitRangeContextTypeMemory, cfg)
+}
+
+func configFromContext(ctx context.Context, key LimitRangeContextType) (*Config, error) {
+	lrc, ok := ctx.Value(key).(*Config)
+	if !ok || lrc == nil {
+		return nil, fmt.Errorf("invalid limitrange Config")
+	}
+
+	return lrc, nil
 }
 
 //LimitRange provides an implementation of the LimitRanger interface defined in admission. This implementation is designed to provider a generic config sourcing tool for all mutation handlers.
