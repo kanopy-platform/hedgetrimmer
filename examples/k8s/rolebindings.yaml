@@ -9,6 +9,15 @@ rules:
   resources:
   - deployments
   - statefulset
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
   - cronjobs
   verbs:
   - get

@@ -41,7 +41,7 @@ func (d *DeploymentHandler) Handle(ctx context.Context, req kadmission.Request) 
 
 	pts, err := d.ptm.Mutate(out.Spec.Template, lrConfig)
 	if err != nil {
-		reason := fmt.Sprintf("failed to mutate deployyment %s/%s: %s", out.Namespace, out.Name, err)
+		reason := fmt.Sprintf("failed to mutate deployment %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
 		return kadmission.Denied(reason)
 	}
