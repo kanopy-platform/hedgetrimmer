@@ -129,3 +129,13 @@ webhooks:
     - statefulsets
     - deployments
     scope: "Namespaced"
+  - apiGroups:
+    - batch
+    apiVersions:
+    - "*"
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cronjobs
+    scope: "Namespaced"

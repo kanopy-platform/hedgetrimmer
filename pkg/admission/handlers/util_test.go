@@ -39,12 +39,12 @@ func assertDecoder(t *testing.T, s *runtime.Scheme) *admission.Decoder {
 }
 
 func testHandler(t *testing.T, in runtime.Object, mm *MockMutator, handler admission.Handler) {
-	stsBytes, err := json.Marshal(in)
+	bytes, err := json.Marshal(in)
 	assert.NoError(t, err)
 
 	ar := admissionv1.AdmissionRequest{
 		Object: runtime.RawExtension{
-			Raw: stsBytes,
+			Raw: bytes,
 		},
 	}
 

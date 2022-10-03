@@ -5,25 +5,28 @@ import (
 	"fmt"
 	"net/http"
 
+	batchv1 "k8s.io/api/batch/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	"github.com/kanopy-platform/hedgetrimmer/pkg/admission"
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
-	appsv1 "k8s.io/api/apps/v1"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	kadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type DeploymentHandler struct {
+type CronjobHandler struct {
 	DefaultDecoderInjector
 	ptm admission.PodTemplateSpecMutator
 }
 
-func NewDeploymentHandler(ptm admission.PodTemplateSpecMutator) *DeploymentHandler {
-	return &DeploymentHandler{ptm: ptm}
+func NewCronjobHandler(ptm admission.PodTemplateSpecMutator) *CronjobHandler {
+	return &CronjobHandler{ptm: ptm}
 }
 
-func (d *DeploymentHandler) Kind() string { return "Deployment" }
+func (c *CronjobHandler) Kind() string {
+	return "CronJob"
+}
 
-func (d *DeploymentHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
+func (c *CronjobHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
 	log := log.FromContext(ctx)
 
 	lrConfig, err := limitrange.MemoryConfigFromContext(ctx)
@@ -33,20 +36,20 @@ func (d *DeploymentHandler) Handle(ctx context.Context, req kadmission.Request) 
 		return kadmission.Denied(reason)
 	}
 
-	out := &appsv1.Deployment{}
-	if err := d.decoder.Decode(req, out); err != nil {
-		log.Error(err, fmt.Sprintf("failed to decode deployment requests: %s", req.Name))
+	out := &batchv1.CronJob{}
+	if err := c.decoder.Decode(req, out); err != nil {
+		log.Error(err, "failed to decode cronjob request: %s", req.Name)
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := d.ptm.Mutate(out.Spec.Template, lrConfig)
+	pts, err := c.ptm.Mutate(out.Spec.JobTemplate.Spec.Template, lrConfig)
 	if err != nil {
-		reason := fmt.Sprintf("failed to mutate deployment %s/%s: %s", out.Namespace, out.Name, err)
+		reason := fmt.Sprintf("failed to mutate cronjob %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
 		return kadmission.Denied(reason)
 	}
 
-	out.Spec.Template = pts
+	out.Spec.JobTemplate.Spec.Template = pts
 
 	return PatchResponse(req.Object.Raw, out)
 }
