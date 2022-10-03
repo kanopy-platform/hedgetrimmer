@@ -134,8 +134,9 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	admissionRouter, err := admission.NewRouter(limitRanger,
 		admission.WithAdmissionHandlers(
 			handlers.NewStatefulSetHandler(ptm),
-			handlers.NewCronjobHandler(ptm)))
-
+			handlers.NewDeploymentHandler(ptm),
+      handlers.NewCronjobHandler(ptm)))
+		))
 	if err != nil {
 		return err
 	}
