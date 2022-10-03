@@ -136,6 +136,7 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 			handlers.NewStatefulSetHandler(ptm),
 			handlers.NewDeploymentHandler(ptm),
 			handlers.NewCronjobHandler(ptm),
+			handlers.NewJobHandler(ptm),
 		))
 	if err != nil {
 		return err

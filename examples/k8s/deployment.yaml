@@ -138,4 +138,5 @@ webhooks:
     - UPDATE
     resources:
     - cronjobs
+    - jobs
     scope: "Namespaced"
