@@ -82,13 +82,13 @@ func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Re
 
 	var handler AdmissionHandler
 	for _, h := range handlers {
-		if handler.VersionSupported(kind.Version) {
-			h = handler
+		if h.VersionSupported(kind.Version) {
+			handler = h
 			break
 		}
 	}
 
-	if h == nil {
+	if handler == nil {
 		return admission.Denied(fmt.Sprintf("no handlers for %s version %s", kind.Kind, kind.Version))
 	}
 
@@ -102,5 +102,5 @@ func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Re
 	}
 
 	ctx = limitrange.WithMemoryConfig(ctx, cfg)
-	return h.Handle(ctx, req)
+	return handler.Handle(ctx, req)
 }
