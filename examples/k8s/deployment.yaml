@@ -140,3 +140,13 @@ webhooks:
     - cronjobs
     - jobs
     scope: "Namespaced"
+  - apiGroups:
+    - ""
+    apiVersions:
+    - "*"
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - replicationcontrollers
+    scope: "Namespaced"
