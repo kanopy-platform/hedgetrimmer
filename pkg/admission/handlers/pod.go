@@ -16,6 +16,7 @@ import (
 
 type PodHandler struct {
 	DefaultDecoderInjector
+	AllVersionSupporter
 	ptm admission.PodTemplateSpecMutator
 }
 
