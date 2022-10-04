@@ -29,6 +29,16 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - limitranges
   verbs:
   - get
