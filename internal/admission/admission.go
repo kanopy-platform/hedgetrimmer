@@ -14,6 +14,7 @@ import (
 type AdmissionHandler interface {
 	admission.Handler
 	Kind() string
+	VersionSupported(v string) bool
 	InjectDecoder(*admission.Decoder) error
 }
 
@@ -22,23 +23,21 @@ type OptionsFunc func(*Router) error
 func WithAdmissionHandlers(handlers ...AdmissionHandler) OptionsFunc {
 	return func(r *Router) error {
 		for _, h := range handlers {
-			if _, ok := r.handlers[h.Kind()]; ok {
-				return fmt.Errorf("duplicate handler %s registered", h.Kind())
-			}
-			r.handlers[h.Kind()] = h
+			handlers := r.handlers[h.Kind()]
+			r.handlers[h.Kind()] = append(handlers, h)
 		}
 		return nil
 	}
 }
 
 type Router struct {
-	handlers    map[string]AdmissionHandler
+	handlers    map[string][]AdmissionHandler
 	limitRanger LimitRanger
 }
 
 func NewRouter(lr LimitRanger, opts ...OptionsFunc) (*Router, error) {
 	r := &Router{
-		handlers:    map[string]AdmissionHandler{},
+		handlers:    map[string][]AdmissionHandler{},
 		limitRanger: lr,
 	}
 
@@ -59,18 +58,38 @@ func (r *Router) InjectDecoder(d *admission.Decoder) error {
 	if d == nil {
 		return fmt.Errorf("decoder cannot be nil")
 	}
-	for _, h := range r.handlers {
-		if err := h.InjectDecoder(d); err != nil {
-			return err
+	for _, hs := range r.handlers {
+		for _, h := range hs {
+			if err := h.InjectDecoder(d); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Response {
-	h, ok := r.handlers[req.RequestKind.Kind]
+
+	kind := req.RequestKind
+	if kind == nil {
+		kind = &req.Kind
+	}
+
+	handlers, ok := r.handlers[kind.Kind]
 	if !ok {
-		return admission.Errored(http.StatusBadRequest, fmt.Errorf("resource %s not implemented", req.RequestKind.Kind))
+		return admission.Allowed(fmt.Sprintf("no handlers for kind: %s", kind.Kind))
+	}
+
+	var handler AdmissionHandler
+	for _, h := range handlers {
+		if h.VersionSupported(kind.Version) {
+			handler = h
+			break
+		}
+	}
+
+	if handler == nil {
+		return admission.Denied(fmt.Sprintf("no handlers for %s version %s", kind.Kind, kind.Version))
 	}
 
 	cfg, err := r.limitRanger.LimitRangeConfig(req.Namespace)
@@ -83,5 +102,5 @@ func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Re
 	}
 
 	ctx = limitrange.WithMemoryConfig(ctx, cfg)
-	return h.Handle(ctx, req)
+	return handler.Handle(ctx, req)
 }

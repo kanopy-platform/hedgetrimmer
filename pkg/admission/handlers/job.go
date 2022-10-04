@@ -15,6 +15,7 @@ import (
 
 type JobHandler struct {
 	DefaultDecoderInjector
+	AllVersionSupporter
 	ptm admission.PodTemplateSpecMutator
 }
 

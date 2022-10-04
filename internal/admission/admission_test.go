@@ -98,12 +98,12 @@ func TestWithAdmissonHandlers_AddHandler(t *testing.T) {
 	assert.Len(t, r.handlers, 1)
 }
 
-func TestWithAdmissionHandlers_AddDuplciateHandlerFails(t *testing.T) {
+func TestWithAdmissionHandlers_AddDuplciateHandler(t *testing.T) {
 	t.Parallel()
 	mlr := &MockLimitRanger{}
 	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}, &MockDeploymentHandler{}))
-	assert.Error(t, err)
-	assert.Nil(t, r)
+	assert.NoError(t, err)
+	assert.NotNil(t, r)
 }
 
 func TestAllowObjects(t *testing.T) {
@@ -121,6 +121,7 @@ func TestAllowObjects(t *testing.T) {
 	tests := []struct {
 		object      runtime.Object
 		wantAllowed bool
+		wantMutated bool
 	}{
 		{
 			object: &appsv1.Deployment{
@@ -129,7 +130,15 @@ func TestAllowObjects(t *testing.T) {
 					APIVersion: "apps/v1",
 				},
 			},
-			wantAllowed: true,
+			wantMutated: true,
+		},
+		{
+			object: &appsv1.Deployment{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1beta1",
+				},
+			},
 		},
 		{
 			object: &appsv1.ReplicaSet{
@@ -138,7 +147,7 @@ func TestAllowObjects(t *testing.T) {
 					APIVersion: "apps/v1",
 				},
 			},
-			wantAllowed: true,
+			wantMutated: true,
 		},
 		{
 			object: &appsv1.ReplicaSet{
@@ -146,6 +155,7 @@ func TestAllowObjects(t *testing.T) {
 					Kind: "Unknown",
 				},
 			},
+			wantAllowed: true,
 		},
 	}
 
@@ -154,20 +164,21 @@ func TestAllowObjects(t *testing.T) {
 		assert.NoError(t, err)
 		response := r.Handle(context.TODO(), admission.Request{AdmissionRequest: v1.AdmissionRequest{
 			RequestKind: &metav1.GroupVersionKind{
-				Kind: test.object.GetObjectKind().GroupVersionKind().Kind,
+				Kind:    test.object.GetObjectKind().GroupVersionKind().Kind,
+				Version: test.object.GetObjectKind().GroupVersionKind().Version,
 			},
 			Object: runtime.RawExtension{
 				Raw: b,
 			},
 		}})
 
-		assert.Equal(t, test.wantAllowed, response.Allowed, fmt.Sprintf("allow test on %s", test.object.GetObjectKind().GroupVersionKind().Kind))
-
 		patchLengthWant := 0
-		if test.wantAllowed {
+		if test.wantMutated {
+			test.wantAllowed = true
 			patchLengthWant = 1
 		}
 
+		assert.Equal(t, test.wantAllowed, response.Allowed, fmt.Sprintf("allow test on %s", test.object.GetObjectKind().GroupVersionKind().Kind))
 		assert.Len(t, response.Patches, patchLengthWant, fmt.Sprintf("patches assert on %s", test.object.GetObjectKind().GroupVersionKind().Kind))
 
 	}
@@ -175,6 +186,10 @@ func TestAllowObjects(t *testing.T) {
 
 type MockHandler struct {
 	decoder *admission.Decoder
+}
+
+func (m *MockHandler) VersionSupported(v string) bool {
+	return true
 }
 
 func (m *MockHandler) InjectDecoder(dec *admission.Decoder) error {
@@ -195,6 +210,14 @@ type MockDeploymentHandler struct {
 	MockHandler
 }
 
+func (m *MockDeploymentHandler) VersionSupported(v string) bool {
+	switch v {
+	case "v1":
+		return true
+	default:
+		return false
+	}
+}
 func (d *MockDeploymentHandler) Kind() string {
 	return "Deployment"
 }

@@ -14,6 +14,7 @@ import (
 
 type StatefulSetHandler struct {
 	DefaultDecoderInjector
+	AllVersionSupporter
 	ptm admission.PodTemplateSpecMutator
 }
 
