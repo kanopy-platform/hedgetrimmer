@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/kanopy-platform/hedgetrimmer/pkg/admission"
@@ -13,21 +13,21 @@ import (
 	kadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type ReplicationControllerHandler struct {
+type ReplicaSetHandler struct {
 	DefaultDecoderInjector
 	AllVersionSupporter
 	ptm admission.PodTemplateSpecMutator
 }
 
-func NewReplicationControllerHandler(ptm admission.PodTemplateSpecMutator) *ReplicationControllerHandler {
-	return &ReplicationControllerHandler{ptm: ptm}
+func NewReplicaSetHandler(ptm admission.PodTemplateSpecMutator) *ReplicaSetHandler {
+	return &ReplicaSetHandler{ptm: ptm}
 }
 
-func (r *ReplicationControllerHandler) Kind() string {
-	return "ReplicationController"
+func (r *ReplicaSetHandler) Kind() string {
+	return "ReplicaSet"
 }
 
-func (r *ReplicationControllerHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
+func (r *ReplicaSetHandler) Handle(ctx context.Context, req kadmission.Request) kadmission.Response {
 	log := log.FromContext(ctx)
 
 	lrConfig, err := limitrange.MemoryConfigFromContext(ctx)
@@ -37,20 +37,20 @@ func (r *ReplicationControllerHandler) Handle(ctx context.Context, req kadmissio
 		return kadmission.Denied(reason)
 	}
 
-	out := &corev1.ReplicationController{}
+	out := &appsv1.ReplicaSet{}
 	if err := r.decoder.Decode(req, out); err != nil {
-		log.Error(err, "failed to decode ReplicationController request: %s", req.Name)
+		log.Error(err, "failed to decode ReplicaSet request: %s", req.Name)
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := r.ptm.Mutate(*out.Spec.Template, lrConfig)
+	pts, err := r.ptm.Mutate(out.Spec.Template, lrConfig)
 	if err != nil {
-		reason := fmt.Sprintf("failed to mutate ReplicationController %s/%s: %s", out.Namespace, out.Name, err)
+		reason := fmt.Sprintf("failed to mutate ReplicaSet %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
 		return kadmission.Denied(reason)
 	}
 
-	out.Spec.Template = &pts
+	out.Spec.Template = pts
 
 	return PatchResponse(req.Object.Raw, out)
 }
