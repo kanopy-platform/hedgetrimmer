@@ -15,6 +15,7 @@ import (
 
 type ReplicationControllerHandler struct {
 	DefaultDecoderInjector
+	AllVersionSupporter
 	ptm admission.PodTemplateSpecMutator
 }
 
