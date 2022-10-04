@@ -15,6 +15,7 @@ import (
 
 type CronjobHandler struct {
 	DefaultDecoderInjector
+	AllVersionSupporter
 	ptm admission.PodTemplateSpecMutator
 }
 

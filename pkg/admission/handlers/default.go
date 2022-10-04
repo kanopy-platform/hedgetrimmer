@@ -12,6 +12,12 @@ type DefaultDecoderInjector struct {
 	decoder *admission.Decoder
 }
 
+type AllVersionSupporter struct{}
+
+func (s *AllVersionSupporter) VersionSupported(v string) bool {
+	return true
+}
+
 func (d *DefaultDecoderInjector) InjectDecoder(decoder *admission.Decoder) error {
 	if decoder == nil {
 		return fmt.Errorf("decoder cannot be nil")
