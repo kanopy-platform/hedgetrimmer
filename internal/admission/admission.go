@@ -80,8 +80,8 @@ func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Re
 		return admission.Allowed(fmt.Sprintf("no handlers for kind: %s", kind.Kind))
 	}
 
-	var h AdmissionHandler
-	for _, handler := range handlers {
+	var handler AdmissionHandler
+	for _, h := range handlers {
 		if handler.VersionSupported(kind.Version) {
 			h = handler
 			break
