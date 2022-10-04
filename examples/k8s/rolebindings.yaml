@@ -9,6 +9,7 @@ rules:
   resources:
   - deployments
   - statefulset
+  - replicasets
   verbs:
   - get
   - list

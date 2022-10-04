@@ -138,6 +138,7 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 			handlers.NewCronjobHandler(ptm),
 			handlers.NewJobHandler(ptm),
 			handlers.NewReplicationControllerHandler(ptm),
+			handlers.NewReplicaSetHandler(ptm),
 		))
 	if err != nil {
 		return err
