@@ -129,6 +129,7 @@ webhooks:
     - statefulsets
     - deployments
     - replicasets
+    - daemonsets
     scope: "Namespaced"
   - apiGroups:
     - batch
