@@ -32,7 +32,6 @@ func (p *PodHandler) Handle(ctx context.Context, req kadmission.Request) kadmiss
 	log := log.FromContext(ctx)
 
 	if req.Operation != admissionv1.Create {
-		fmt.Println(req.Operation)
 		return kadmission.Allowed("pod resources are immutable")
 	}
 
