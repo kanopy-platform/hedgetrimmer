@@ -10,6 +10,7 @@ rules:
   - deployments
   - statefulset
   - replicasets
+  - daemonsets
   verbs:
   - get
   - list
