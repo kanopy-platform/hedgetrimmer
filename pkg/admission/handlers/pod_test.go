@@ -44,7 +44,6 @@ func TestPodHandler(t *testing.T) {
 
 	tests := []struct {
 		config  *limitrange.Config
-		lrerr   error
 		pts     corev1.PodTemplateSpec
 		merr    error
 		reject  bool
