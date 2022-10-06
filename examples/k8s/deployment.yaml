@@ -40,8 +40,8 @@ spec:
           image: registry.example.com/hedgetrimmer:latest
           args:
             - "--log-level=debug"
-            - "--default-memory-limit-request-ratio=2"
-            - "--resources=cronjobs,daemonsets,deployments,jobs,replicasets,replicationcontrollers,statefulsets"
+            - "--default-memory-limit-request-ratio=1.1"
+            - "--resources=cronjobs,daemonsets,deployments,jobs,pods,replicasets,replicationcontrollers,statefulsets"
           imagePullPolicy: Always
           volumeMounts:
             - name: webhook-certs
