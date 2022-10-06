@@ -37,9 +37,8 @@ func PatchResponse(raw []byte, mutated bool, v interface{}) admission.Response {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	unstruct := unstructured.Unstructured{
-		Object: obj,
-	}
+	unstruct := unstructured.Unstructured{}
+	unstruct.SetUnstructuredContent(obj)
 
 	if mutated {
 		annotations := unstruct.GetAnnotations()
@@ -50,7 +49,12 @@ func PatchResponse(raw []byte, mutated bool, v interface{}) admission.Response {
 		unstruct.SetAnnotations(annotations)
 	}
 
-	pjson, err := json.Marshal(unstruct)
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstruct.UnstructuredContent(), v)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	pjson, err := json.Marshal(v)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
