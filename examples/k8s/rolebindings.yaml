@@ -32,6 +32,7 @@ rules:
   - ""
   resources:
   - replicationcontrollers
+  - pods
   verbs:
   - get
   - list

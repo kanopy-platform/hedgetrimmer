@@ -151,4 +151,5 @@ webhooks:
     - UPDATE
     resources:
     - replicationcontrollers
+    - pods
     scope: "Namespaced"

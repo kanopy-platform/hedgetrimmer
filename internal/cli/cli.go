@@ -140,6 +140,7 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 			handlers.NewReplicationControllerHandler(ptm),
 			handlers.NewReplicaSetHandler(ptm),
 			handlers.NewDaemonSetHandler(ptm),
+			handlers.NewPodHandler(ptm),
 		))
 	if err != nil {
 		return err
