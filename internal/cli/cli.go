@@ -52,7 +52,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.PersistentFlags().String("webhook-certs-dir", "/etc/webhook/certs", "Admission webhook TLS certificate directory")
 	cmd.PersistentFlags().Bool("dry-run", false, "Controller dry-run changes only")
 	cmd.PersistentFlags().Float64("default-memory-limit-request-ratio", 1.1, "Default memory limit/request ratio")
-	cmd.PersistentFlags().String("resources", "", "Comma separated list of resources to enforce")
+	cmd.PersistentFlags().StringSlice("resources", all_resources, "List of resources to enforce")
 
 	k8sFlags.AddFlags(cmd.PersistentFlags())
 	// no need to check err, this only checks if variadic args != 0
@@ -137,7 +137,7 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		mutators.WithDefaultMemoryLimitRequestRatio(viper.GetFloat64("default-memory-limit-request-ratio")),
 	)
 
-	handlers, err := getHandlers(viper.GetString("resources"), ptm)
+	handlers, err := getHandlers(viper.GetStringSlice("resources"), ptm)
 	if err != nil {
 		return err
 	}
@@ -165,36 +165,32 @@ func configureHealthChecks(mgr manager.Manager) error {
 	return nil
 }
 
-func getHandlers(resources string, ptm pkgadmission.PodTemplateSpecMutator) ([]admission.AdmissionHandler, error) {
+func getHandlers(resources []string, ptm pkgadmission.PodTemplateSpecMutator) ([]admission.AdmissionHandler, error) {
 	var handlers []admission.AdmissionHandler
 	var unexpected []string
 
-	if len(resources) == 0 {
-		return handlers, nil
-	}
-
 	dedupedResources := make(map[string]bool)
-	for _, resource := range strings.Split(resources, ",") {
+	for _, resource := range resources {
 		dedupedResources[strings.TrimSpace(resource)] = true
 	}
 
 	for resource := range dedupedResources {
 		switch resource {
-		case "cronjobs":
+		case cronjobs:
 			handlers = append(handlers, pkghandlers.NewCronjobHandler(ptm))
-		case "daemonsets":
+		case daemonsets:
 			handlers = append(handlers, pkghandlers.NewDaemonSetHandler(ptm))
-		case "deployments":
+		case deployments:
 			handlers = append(handlers, pkghandlers.NewDeploymentHandler(ptm))
-		case "jobs":
+		case jobs:
 			handlers = append(handlers, pkghandlers.NewJobHandler(ptm))
-		case "pods":
+		case pods:
 			handlers = append(handlers, pkghandlers.NewPodHandler(ptm))
-		case "replicasets":
+		case replicasets:
 			handlers = append(handlers, pkghandlers.NewReplicaSetHandler(ptm))
-		case "replicationcontrollers":
+		case replicationcontrollers:
 			handlers = append(handlers, pkghandlers.NewReplicationControllerHandler(ptm))
-		case "statefulsets":
+		case statefulsets:
 			handlers = append(handlers, pkghandlers.NewStatefulSetHandler(ptm))
 		default:
 			unexpected = append(unexpected, resource)

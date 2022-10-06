@@ -13,37 +13,37 @@ func TestGetHandlers(t *testing.T) {
 
 	tests := []struct {
 		msg       string
-		resources string
+		resources []string
 		wantLen   int
 		wantError bool
 	}{
 		{
 			msg:       "Full list of resources",
-			resources: "cronjobs,daemonsets,deployments,jobs,pods,replicasets,replicationcontrollers,statefulsets",
+			resources: all_resources,
 			wantLen:   8,
 			wantError: false,
 		},
 		{
 			msg:       "Unexpected resource",
-			resources: "cronjobs,unexpected",
+			resources: []string{cronjobs, "unexpected"},
 			wantLen:   0,
 			wantError: true,
 		},
 		{
-			msg:       "Handle empty resources string",
-			resources: "",
+			msg:       "Handle empty input",
+			resources: []string{},
 			wantLen:   0,
 			wantError: false,
 		},
 		{
 			msg:       "Handle leading and trailing spaces",
-			resources: " daemonsets ,  replicasets,replicationcontrollers  ",
+			resources: []string{" daemonsets ", "  replicasets", "replicationcontrollers  "},
 			wantLen:   3,
 			wantError: false,
 		},
 		{
 			msg:       "Handle duplicated resources",
-			resources: "daemonsets,replicasets,replicasets,daemonsets,replicasets",
+			resources: []string{daemonsets, replicasets, replicasets, daemonsets, replicasets},
 			wantLen:   2,
 			wantError: false,
 		},
