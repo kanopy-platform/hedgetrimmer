@@ -25,37 +25,44 @@ func NewPodTemplateSpec(opts ...OptionsFunc) *PodTemplateSpec {
 	return pts
 }
 
-func (p *PodTemplateSpec) Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemory *limitrange.Config) (corev1.PodTemplateSpec, error) {
+func (p *PodTemplateSpec) Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemory *limitrange.Config) (corev1.PodTemplateSpec, bool, error) {
 
+	var mutated bool
 	pts := *inputPts.DeepCopy()
 	if limitRangeMemory == nil {
-		return pts, fmt.Errorf("invalid limit range config")
+		return pts, mutated, fmt.Errorf("invalid limit range config")
 	}
 
-	if err := p.setAndValidateResourceRequirements(pts.Spec.InitContainers, limitRangeMemory); err != nil {
-		return pts, err
+	m, err := p.setAndValidateResourceRequirements(pts.Spec.InitContainers, limitRangeMemory)
+	if err != nil {
+		return pts, m, err
+	}
+	mutated = m
+
+	m, err = p.setAndValidateResourceRequirements(pts.Spec.Containers, limitRangeMemory)
+	if err != nil {
+		return pts, m || mutated, err
 	}
 
-	if err := p.setAndValidateResourceRequirements(pts.Spec.Containers, limitRangeMemory); err != nil {
-		return pts, err
-	}
+	mutated = m || mutated
 
-	return pts, nil
+	return pts, mutated, nil
 }
 
-func (p *PodTemplateSpec) setAndValidateResourceRequirements(containers []corev1.Container, limitRangeMemory *limitrange.Config) error {
+func (p *PodTemplateSpec) setAndValidateResourceRequirements(containers []corev1.Container, limitRangeMemory *limitrange.Config) (bool, error) {
+	var mutated bool
 	for idx := range containers {
 		container := &containers[idx]
 
-		p.setMemoryRequest(container, limitRangeMemory)
-		p.setMemoryLimit(container, limitRangeMemory)
+		mutated = p.setMemoryRequest(container, limitRangeMemory)
+		mutated = p.setMemoryLimit(container, limitRangeMemory) || mutated
 
 		if err := p.validateMemoryRequirements(*container, limitRangeMemory); err != nil {
-			return err
+			return mutated, err
 		}
 	}
 
-	return nil
+	return mutated, nil
 }
 
 func (p *PodTemplateSpec) validateMemoryRequirements(container corev1.Container, limitRangeMemory *limitrange.Config) error {
@@ -81,12 +88,12 @@ func (p *PodTemplateSpec) validateMemoryRequirements(container corev1.Container,
 	return nil
 }
 
-func (p *PodTemplateSpec) setMemoryRequest(container *corev1.Container, limitRangeMemory *limitrange.Config) {
+func (p *PodTemplateSpec) setMemoryRequest(container *corev1.Container, limitRangeMemory *limitrange.Config) bool {
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
 	if !memoryRequest.IsZero() {
-		return
+		return false
 	}
 
 	if container.Resources.Requests == nil {
@@ -100,14 +107,16 @@ func (p *PodTemplateSpec) setMemoryRequest(container *corev1.Container, limitRan
 	} else if limitRangeMemory.HasDefaultLimit {
 		container.Resources.Requests[corev1.ResourceMemory] = limitRangeMemory.DefaultLimit
 	}
+
+	return true
 }
 
-func (p *PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRangeMemory *limitrange.Config) {
+func (p *PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRangeMemory *limitrange.Config) bool {
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
 	if !memoryLimit.IsZero() {
-		return
+		return false
 	}
 
 	if container.Resources.Limits == nil {
@@ -126,4 +135,5 @@ func (p *PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRange
 	if !calculatedLimit.IsZero() {
 		container.Resources.Limits[corev1.ResourceMemory] = calculatedLimit
 	}
+	return true
 }

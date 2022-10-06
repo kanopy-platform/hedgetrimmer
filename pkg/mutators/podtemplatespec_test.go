@@ -35,6 +35,7 @@ func TestMutate(t *testing.T) {
 		config     *limitrange.Config
 		want       []corev1.Container
 		wantError  bool
+		mutated    bool
 	}{
 		{
 			msg: "No request or limit specified, apply default",
@@ -53,6 +54,7 @@ func TestMutate(t *testing.T) {
 				},
 			},
 			wantError: false,
+			mutated:   true,
 		},
 		{
 			msg: "Has request but no limit specified, apply defaultMaxLimitRequestRatio which exceeds DefaultLimit",
@@ -73,6 +75,29 @@ func TestMutate(t *testing.T) {
 				},
 			},
 			wantError: false,
+			mutated:   true,
+		},
+		{
+			msg: "Has request and limit specified, not mutated",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+					},
+				},
+			},
+			config: limitRangeMemory,
+			want: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+					},
+				},
+			},
+			wantError: false,
+			mutated:   false,
 		},
 	}
 
@@ -92,7 +117,7 @@ func TestMutate(t *testing.T) {
 			input := inputs[idx]
 			want := wants[idx]
 
-			result, err := testPts.Mutate(input, test.config)
+			result, mutated, err := testPts.Mutate(input, test.config)
 			if test.wantError {
 				assert.Error(t, err, test.msg)
 			} else {
@@ -109,6 +134,7 @@ func TestMutate(t *testing.T) {
 				}
 
 				assert.Equal(t, want, result, test.msg)
+				assert.Equal(t, test.mutated, mutated)
 			}
 		}
 
