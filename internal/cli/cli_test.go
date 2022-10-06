@@ -19,8 +19,8 @@ func TestGetHandlers(t *testing.T) {
 	}{
 		{
 			msg:       "Full list of resources",
-			resources: "cronjobs,daemonsets,deployments,jobs,replicasets,replicationcontrollers,statefulsets",
-			wantLen:   7,
+			resources: "cronjobs,daemonsets,deployments,jobs,pods,replicasets,replicationcontrollers,statefulsets",
+			wantLen:   8,
 			wantError: false,
 		},
 		{

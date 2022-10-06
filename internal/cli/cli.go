@@ -188,6 +188,8 @@ func getHandlers(resources string, ptm pkgadmission.PodTemplateSpecMutator) ([]a
 			handlers = append(handlers, pkghandlers.NewDeploymentHandler(ptm))
 		case "jobs":
 			handlers = append(handlers, pkghandlers.NewJobHandler(ptm))
+		case "pods":
+			handlers = append(handlers, pkghandlers.NewPodHandler(ptm))
 		case "replicasets":
 			handlers = append(handlers, pkghandlers.NewReplicaSetHandler(ptm))
 		case "replicationcontrollers":
