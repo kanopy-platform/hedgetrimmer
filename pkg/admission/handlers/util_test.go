@@ -16,8 +16,9 @@ import (
 )
 
 type MockMutator struct {
-	spec corev1.PodTemplateSpec
-	err  error
+	spec    corev1.PodTemplateSpec
+	err     error
+	mutated bool
 }
 
 func (mm *MockMutator) SetSpec(spec corev1.PodTemplateSpec) {
@@ -28,8 +29,12 @@ func (mm *MockMutator) SetErr(err error) {
 	mm.err = err
 }
 
-func (mm *MockMutator) Mutate(inputs corev1.PodTemplateSpec, config *limitrange.Config) (corev1.PodTemplateSpec, error) {
-	return mm.spec, mm.err
+func (mm *MockMutator) SetMutated(mutated bool) {
+	mm.mutated = mutated
+}
+
+func (mm *MockMutator) Mutate(inputs corev1.PodTemplateSpec, config *limitrange.Config) (corev1.PodTemplateSpec, bool, error) {
+	return mm.spec, mm.mutated, mm.err
 }
 
 func assertDecoder(t *testing.T, s *runtime.Scheme) *admission.Decoder {

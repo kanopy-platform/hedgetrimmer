@@ -43,7 +43,7 @@ func (r *ReplicaSetHandler) Handle(ctx context.Context, req kadmission.Request) 
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := r.ptm.Mutate(out.Spec.Template, lrConfig)
+	pts, mutated, err := r.ptm.Mutate(out.Spec.Template, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate ReplicaSet %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
@@ -52,5 +52,5 @@ func (r *ReplicaSetHandler) Handle(ctx context.Context, req kadmission.Request) 
 
 	out.Spec.Template = pts
 
-	return PatchResponse(req.Object.Raw, out)
+	return PatchResponse(req.Object.Raw, mutated, out)
 }

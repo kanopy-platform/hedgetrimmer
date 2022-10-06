@@ -17,7 +17,7 @@ func TestDefaultDecoderInjector(t *testing.T) {
 }
 
 func TestPatchResponse_ErrorsOnNil(t *testing.T) {
-	resp := PatchResponse([]byte{}, "not json")
+	resp := PatchResponse([]byte{}, false, "not json")
 	assert.Equal(t, false, resp.Allowed)
 }
 
@@ -27,6 +27,9 @@ func TestPatchResponse_OK(t *testing.T) {
 	}{
 		Hello: "world",
 	}
-	resp := PatchResponse([]byte("{}"), &d)
+	resp := PatchResponse([]byte("{}"), true, &d)
+	assert.Equal(t, true, resp.Allowed)
+
+	resp = PatchResponse([]byte("{}"), false, &d)
 	assert.Equal(t, true, resp.Allowed)
 }

@@ -43,7 +43,7 @@ func (d *DaemonSetHandler) Handle(ctx context.Context, req kadmission.Request) k
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := d.ptm.Mutate(out.Spec.Template, lrConfig)
+	pts, mutated, err := d.ptm.Mutate(out.Spec.Template, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate DaemonSet %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
@@ -52,5 +52,5 @@ func (d *DaemonSetHandler) Handle(ctx context.Context, req kadmission.Request) k
 
 	out.Spec.Template = pts
 
-	return PatchResponse(req.Object.Raw, out)
+	return PatchResponse(req.Object.Raw, mutated, out)
 }

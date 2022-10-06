@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
+
+const HedgetrimmerMutationAnnotation = "kanopy-platform/hedgetrimmer-mutated"
 
 type DefaultDecoderInjector struct {
 	decoder *admission.Decoder
@@ -26,8 +30,27 @@ func (d *DefaultDecoderInjector) InjectDecoder(decoder *admission.Decoder) error
 	return nil
 }
 
-func PatchResponse(raw []byte, v interface{}) admission.Response {
-	pjson, err := json.Marshal(v)
+func PatchResponse(raw []byte, mutated bool, v interface{}) admission.Response {
+
+	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(v)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	unstruct := unstructured.Unstructured{
+		Object: obj,
+	}
+
+	if mutated {
+		annotations := unstruct.GetAnnotations()
+		if annotations == nil {
+			annotations = map[string]string{}
+		}
+		annotations[HedgetrimmerMutationAnnotation] = "true"
+		unstruct.SetAnnotations(annotations)
+	}
+
+	pjson, err := json.Marshal(unstruct)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}

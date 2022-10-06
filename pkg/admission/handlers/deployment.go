@@ -40,7 +40,7 @@ func (d *DeploymentHandler) Handle(ctx context.Context, req kadmission.Request) 
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := d.ptm.Mutate(out.Spec.Template, lrConfig)
+	pts, mutated, err := d.ptm.Mutate(out.Spec.Template, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate deployment %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
@@ -49,5 +49,5 @@ func (d *DeploymentHandler) Handle(ctx context.Context, req kadmission.Request) 
 
 	out.Spec.Template = pts
 
-	return PatchResponse(req.Object.Raw, out)
+	return PatchResponse(req.Object.Raw, mutated, out)
 }

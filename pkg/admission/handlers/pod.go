@@ -53,7 +53,7 @@ func (p *PodHandler) Handle(ctx context.Context, req kadmission.Request) kadmiss
 		Spec: out.Spec,
 	}
 
-	pts, err := p.ptm.Mutate(mout, lrConfig)
+	pts, mutated, err := p.ptm.Mutate(mout, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate pod %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
@@ -62,5 +62,5 @@ func (p *PodHandler) Handle(ctx context.Context, req kadmission.Request) kadmiss
 
 	//Pull the mutated spec off of the PTS and replace the Pod.Spec with it
 	out.Spec = pts.Spec
-	return PatchResponse(req.Object.Raw, &out)
+	return PatchResponse(req.Object.Raw, mutated, &out)
 }
