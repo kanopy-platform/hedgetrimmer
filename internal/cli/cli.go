@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -12,7 +13,8 @@ import (
 
 	"github.com/kanopy-platform/hedgetrimmer/internal/admission"
 	logzap "github.com/kanopy-platform/hedgetrimmer/internal/log/zap"
-	"github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers"
+	pkgadmission "github.com/kanopy-platform/hedgetrimmer/pkg/admission"
+	pkghandlers "github.com/kanopy-platform/hedgetrimmer/pkg/admission/handlers"
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	"github.com/kanopy-platform/hedgetrimmer/pkg/mutators"
 
@@ -49,6 +51,8 @@ func NewRootCommand() *cobra.Command {
 	cmd.PersistentFlags().Int("webhook-listen-port", 8443, "Admission webhook listen port")
 	cmd.PersistentFlags().String("webhook-certs-dir", "/etc/webhook/certs", "Admission webhook TLS certificate directory")
 	cmd.PersistentFlags().Bool("dry-run", false, "Controller dry-run changes only")
+	cmd.PersistentFlags().Float64("default-memory-limit-request-ratio", 1.1, "Default memory limit/request ratio")
+	cmd.PersistentFlags().StringSlice("resources", all_resources, "List of resources to enforce")
 
 	k8sFlags.AddFlags(cmd.PersistentFlags())
 	// no need to check err, this only checks if variadic args != 0
@@ -129,19 +133,18 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 
 	limitRanger := limitrange.NewLimitRanger(lri.Lister())
 
-	ptm := mutators.NewPodTemplateSpec()
+	ptm := mutators.NewPodTemplateSpec(
+		mutators.WithDefaultMemoryLimitRequestRatio(viper.GetFloat64("default-memory-limit-request-ratio")),
+	)
+
+	handlers, err := getHandlers(viper.GetStringSlice("resources"), ptm)
+	if err != nil {
+		return err
+	}
 
 	admissionRouter, err := admission.NewRouter(limitRanger,
-		admission.WithAdmissionHandlers(
-			handlers.NewStatefulSetHandler(ptm),
-			handlers.NewDeploymentHandler(ptm),
-			handlers.NewCronjobHandler(ptm),
-			handlers.NewJobHandler(ptm),
-			handlers.NewReplicationControllerHandler(ptm),
-			handlers.NewReplicaSetHandler(ptm),
-			handlers.NewDaemonSetHandler(ptm),
-			handlers.NewPodHandler(ptm),
-		))
+		admission.WithAdmissionHandlers(handlers...),
+	)
 	if err != nil {
 		return err
 	}
@@ -160,4 +163,43 @@ func configureHealthChecks(mgr manager.Manager) error {
 		return err
 	}
 	return nil
+}
+
+func getHandlers(resources []string, ptm pkgadmission.PodTemplateSpecMutator) ([]admission.AdmissionHandler, error) {
+	var handlers []admission.AdmissionHandler
+	var unexpected []string
+
+	dedupedResources := make(map[string]bool)
+	for _, resource := range resources {
+		dedupedResources[strings.TrimSpace(resource)] = true
+	}
+
+	for resource := range dedupedResources {
+		switch resource {
+		case cronjobs:
+			handlers = append(handlers, pkghandlers.NewCronjobHandler(ptm))
+		case daemonsets:
+			handlers = append(handlers, pkghandlers.NewDaemonSetHandler(ptm))
+		case deployments:
+			handlers = append(handlers, pkghandlers.NewDeploymentHandler(ptm))
+		case jobs:
+			handlers = append(handlers, pkghandlers.NewJobHandler(ptm))
+		case pods:
+			handlers = append(handlers, pkghandlers.NewPodHandler(ptm))
+		case replicasets:
+			handlers = append(handlers, pkghandlers.NewReplicaSetHandler(ptm))
+		case replicationcontrollers:
+			handlers = append(handlers, pkghandlers.NewReplicationControllerHandler(ptm))
+		case statefulsets:
+			handlers = append(handlers, pkghandlers.NewStatefulSetHandler(ptm))
+		default:
+			unexpected = append(unexpected, resource)
+		}
+	}
+
+	if len(unexpected) > 0 {
+		return []admission.AdmissionHandler{}, fmt.Errorf("unexpected resources: %v", unexpected)
+	}
+
+	return handlers, nil
 }
