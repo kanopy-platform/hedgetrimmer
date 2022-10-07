@@ -118,7 +118,7 @@ webhooks:
   sideEffects: None
   admissionReviewVersions: ["v1", "v1beta1"]
   failurePolicy: Ignore
-  name: hedgetrimmer.kanopy-platform.github.io
+  name: v1beta1.hedgetrimmer.kanopy-platform.github.io
   reinvocationPolicy: IfNeeded
   rules:
   - apiGroups:
