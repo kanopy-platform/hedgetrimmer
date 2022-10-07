@@ -119,7 +119,7 @@ webhooks:
   admissionReviewVersions: ["v1", "v1beta1"]
   failurePolicy: Ignore
   name: hedgetrimmer.kanopy-platform.github.io
-  reinvocationPolicy: Never
+  reinvocationPolicy: IfNeeded
   rules:
   - apiGroups:
     - apps
