@@ -85,6 +85,9 @@ spec:
   - port: 8443
     targetPort: 8443
     name: webhooks
+  - port: 8080
+    targetPort: 8080
+    name: probes
   selector:
     app: hedgetrimmer
 
@@ -113,10 +116,10 @@ webhooks:
       port: 8443
       namespace: "devops"
   sideEffects: None
-  admissionReviewVersions: ["v1beta1"]
+  admissionReviewVersions: ["v1", "v1beta1"]
   failurePolicy: Ignore
-  name: v1beta1.kanopy-platform.github.io
-  reinvocationPolicy: IfNeeded
+  name: hedgetrimmer.kanopy-platform.github.io
+  reinvocationPolicy: Never
   rules:
   - apiGroups:
     - apps
