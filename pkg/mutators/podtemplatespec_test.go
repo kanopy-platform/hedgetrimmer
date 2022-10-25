@@ -92,10 +92,10 @@ func TestMutate(t *testing.T) {
 				assert.NoError(t, err, test.msg)
 
 				for idx, container := range result.Spec.InitContainers {
-					request := container.Resources.Requests.Memory()
-					limit := container.Resources.Limits.Memory()
-					assert.True(t, test.want[idx].Resources.Requests.Memory().Equal(*request), test.msg)
-					assert.True(t, test.want[idx].Resources.Limits.Memory().Equal(*limit), test.msg)
+					wantRequest := test.want[idx].Resources.Requests.Memory()
+					wantLimit := test.want[idx].Resources.Limits.Memory()
+					assert.True(t, container.Resources.Requests.Memory().Equal(*wantRequest), test.msg)
+					assert.True(t, container.Resources.Limits.Memory().Equal(*wantLimit), test.msg)
 				}
 			}
 		}

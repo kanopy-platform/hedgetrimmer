@@ -85,7 +85,7 @@ func Ptr(q resource.Quantity) *resource.Quantity {
 func RoundUpBinarySI(q resource.Quantity) resource.Quantity {
 	qCopy := q.DeepCopy()
 
-	// Note the implementation cannot use resource.RoundUp() because it operates using DecimalSI.
+	// Note the implementation cannot use resource.RoundUp(), it operates using DecimalSI.
 	if qCopy.Cmp(Ten_GiB) == 1 {
 		qCopy = roundUp(qCopy, One_GiB)
 	} else if qCopy.Cmp(Ten_MiB) == 1 {
