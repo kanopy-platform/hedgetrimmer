@@ -421,7 +421,7 @@ func TestRoundUp(t *testing.T) {
 		{
 			msg:   "1.01Ki rounded up to nearest 1Ki = 2Ki",
 			input: resource.MustParse("1.01Ki"),
-			unit:  resource.MustParse("2Ki"),
+			unit:  resource.MustParse("1Ki"),
 			want:  resource.MustParse("2Ki"),
 		},
 		{
