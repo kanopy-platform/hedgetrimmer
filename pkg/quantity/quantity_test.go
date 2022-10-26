@@ -382,6 +382,11 @@ func TestRoundUpBinarySI(t *testing.T) {
 		want  resource.Quantity
 	}{
 		{
+			msg:   "123.4Ki rounds up to 124Ki",
+			input: resource.MustParse("123.4Ki"),
+			want:  resource.MustParse("124Ki"),
+		},
+		{
 			msg:   "9.8Mi rounds up to 10036Ki",
 			input: resource.MustParse("9.8Mi"),
 			want:  resource.MustParse("10036Ki"),
@@ -390,11 +395,6 @@ func TestRoundUpBinarySI(t *testing.T) {
 			msg:   "10.1Mi rounds up to 11Mi",
 			input: resource.MustParse("10.1Mi"),
 			want:  resource.MustParse("11Mi"),
-		},
-		{
-			msg:   "12345Mi rounds up to 13Gi",
-			input: resource.MustParse("12345Mi"),
-			want:  resource.MustParse("13Gi"),
 		},
 		{
 			msg:   "15Gi no rounding",
