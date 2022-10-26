@@ -117,9 +117,9 @@ func (p *PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRange
 	var calculatedLimit resource.Quantity
 
 	if limitRangeMemory.HasMaxLimitRequestRatio && !memoryRequest.IsZero() {
-		calculatedLimit = quantity.Mul(*memoryRequest, limitRangeMemory.MaxLimitRequestRatio)
+		calculatedLimit = quantity.RoundUpBinarySI(quantity.Mul(*memoryRequest, limitRangeMemory.MaxLimitRequestRatio))
 	} else {
-		ratioMemoryLimit := quantity.Mul(*memoryRequest, p.defaultMemoryLimitRequestRatio)
+		ratioMemoryLimit := quantity.RoundUpBinarySI(quantity.Mul(*memoryRequest, p.defaultMemoryLimitRequestRatio))
 		calculatedLimit = quantity.Max(limitRangeMemory.DefaultLimit, ratioMemoryLimit)
 	}
 

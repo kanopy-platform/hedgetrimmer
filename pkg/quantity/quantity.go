@@ -36,6 +36,8 @@ func MulFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
 	return Mul(x, yQuantity), nil
 }
 
+// Returns x/y rounded up to the specified scale s.
+// Note that inf.Scale is inverted. -2 means 100, 2 means 0.01.
 func Div(x resource.Quantity, y resource.Quantity, s inf.Scale) resource.Quantity {
 	result := resource.Quantity{}
 	result.Format = x.Format
@@ -77,4 +79,24 @@ func Max(x resource.Quantity, y resource.Quantity) resource.Quantity {
 
 func Ptr(q resource.Quantity) *resource.Quantity {
 	return &q
+}
+
+// Rounds up input q to the nearest BinarySI representation Mi/Ki.
+func RoundUpBinarySI(q resource.Quantity) resource.Quantity {
+	qCopy := q.DeepCopy()
+
+	// Note the implementation cannot use resource.RoundUp(), it operates using DecimalSI.
+	if qCopy.Cmp(TenMi) == 1 {
+		qCopy = roundUp(qCopy, OneMi)
+	} else {
+		qCopy = roundUp(qCopy, OneKi)
+	}
+
+	qCopy.Format = resource.BinarySI
+	return qCopy
+}
+
+// Performs integer division to round up q to the given unit.
+func roundUp(q resource.Quantity, unit resource.Quantity) resource.Quantity {
+	return Mul(Div(q, unit, 0), unit)
 }

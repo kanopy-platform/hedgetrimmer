@@ -372,3 +372,80 @@ func TestMax(t *testing.T) {
 		assert.Equal(t, test.want, Max(test.inputA, test.inputB), test.msg)
 	}
 }
+
+func TestRoundUpBinarySI(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		msg   string
+		input resource.Quantity
+		want  resource.Quantity
+	}{
+		{
+			msg:   "123.4Ki rounds up to 124Ki",
+			input: resource.MustParse("123.4Ki"),
+			want:  resource.MustParse("124Ki"),
+		},
+		{
+			msg:   "9.8Mi rounds up to 10036Ki",
+			input: resource.MustParse("9.8Mi"),
+			want:  resource.MustParse("10036Ki"),
+		},
+		{
+			msg:   "10.1Mi rounds up to 11Mi",
+			input: resource.MustParse("10.1Mi"),
+			want:  resource.MustParse("11Mi"),
+		},
+		{
+			msg:   "15Gi no rounding",
+			input: resource.MustParse("15Gi"),
+			want:  resource.MustParse("15Gi"),
+		},
+	}
+
+	for _, test := range tests {
+		result := RoundUpBinarySI(test.input)
+		assert.True(t, test.want.Equal(result), test.msg)
+	}
+}
+
+func TestRoundUp(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		msg   string
+		input resource.Quantity
+		unit  resource.Quantity
+		want  resource.Quantity
+	}{
+		{
+			msg:   "1.01Ki rounded up to nearest 1Ki = 2Ki",
+			input: resource.MustParse("1.01Ki"),
+			unit:  resource.MustParse("1Ki"),
+			want:  resource.MustParse("2Ki"),
+		},
+		{
+			msg:   "64Mi rounded up to nearest 1Mi = no rounding",
+			input: resource.MustParse("64Mi"),
+			unit:  resource.MustParse("1Mi"),
+			want:  resource.MustParse("64Mi"),
+		},
+		{
+			msg:   "64.1Mi rounded up to nearest 1Mi = 65Mi",
+			input: resource.MustParse("64.1Mi"),
+			unit:  resource.MustParse("1Mi"),
+			want:  resource.MustParse("65Mi"),
+		},
+		{
+			msg:   "990Mi rounded up to nearest 1Gi = 1Gi",
+			input: resource.MustParse("990Mi"),
+			unit:  resource.MustParse("1Gi"),
+			want:  resource.MustParse("1Gi"),
+		},
+	}
+
+	for _, test := range tests {
+		result := roundUp(test.input, test.unit)
+		assert.True(t, test.want.Equal(result), test.msg)
+	}
+}
