@@ -81,7 +81,7 @@ func Ptr(q resource.Quantity) *resource.Quantity {
 	return &q
 }
 
-// Rounds up input q to the nearest BinarySI representation Gi/Mi/Ki.
+// Rounds up input q to the nearest BinarySI representation Mi/Ki.
 func RoundUpBinarySI(q resource.Quantity) resource.Quantity {
 	qCopy := q.DeepCopy()
 
