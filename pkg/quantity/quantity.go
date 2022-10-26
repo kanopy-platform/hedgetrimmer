@@ -86,10 +86,10 @@ func RoundUpBinarySI(q resource.Quantity) resource.Quantity {
 	qCopy := q.DeepCopy()
 
 	// Note the implementation cannot use resource.RoundUp(), it operates using DecimalSI.
-	if qCopy.Cmp(Ten_MiB) == 1 {
-		qCopy = roundUp(qCopy, One_MiB)
+	if qCopy.Cmp(TenMi) == 1 {
+		qCopy = roundUp(qCopy, OneMi)
 	} else {
-		qCopy = roundUp(qCopy, One_KiB)
+		qCopy = roundUp(qCopy, OneKi)
 	}
 
 	qCopy.Format = resource.BinarySI
