@@ -329,7 +329,7 @@ func TestMin(t *testing.T) {
 		{
 			inputA: resource.MustParse("256Mi"),
 			inputB: resource.MustParse("256.123Mi"),
-			want:   *Ptr(resource.MustParse("256Mi")).ToDec(), // for large values it stores as Dec
+			want:   resource.MustParse("256Mi"),
 			msg:    "Min(256Mi, 256.123Mi) = 256Mi",
 		},
 		{
@@ -341,7 +341,8 @@ func TestMin(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.want, Min(test.inputA, test.inputB), test.msg)
+		result := Min(test.inputA, test.inputB)
+		assert.True(t, test.want.Equal(result), test.msg)
 	}
 }
 
@@ -357,19 +358,20 @@ func TestMax(t *testing.T) {
 		{
 			inputA: resource.MustParse("256Mi"),
 			inputB: resource.MustParse("256.123Mi"),
-			want:   *Ptr(resource.MustParse("256.123Mi")).ToDec(), // for large values it stores as Dec
+			want:   resource.MustParse("256.123Mi"),
 			msg:    "Max(256Mi, 256.123Mi) = 256.123Mi",
 		},
 		{
 			inputA: resource.MustParse("0.12345Gi"),
 			inputB: resource.MustParse("5Ki"),
-			want:   *Ptr(resource.MustParse("0.12345Gi")).ToDec(),
+			want:   resource.MustParse("0.12345Gi"),
 			msg:    "Max(0.12345Gi, 5Ki) = 0.12345Gi",
 		},
 	}
 
 	for _, test := range tests {
-		assert.Equal(t, test.want, Max(test.inputA, test.inputB), test.msg)
+		result := Max(test.inputA, test.inputB)
+		assert.True(t, test.want.Equal(result), test.msg)
 	}
 }
 

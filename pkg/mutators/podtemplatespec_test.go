@@ -170,11 +170,7 @@ func TestValidateMemoryRatio(t *testing.T) {
 		}
 
 		err := testPts.validateMemoryRequirements(container, test.mc)
-		if test.wantError {
-			assert.Error(t, err, test.msg)
-		} else {
-			assert.NoError(t, err, test.msg)
-		}
+		assert.Equal(t, test.wantError, err != nil, test.msg)
 	}
 }
 
