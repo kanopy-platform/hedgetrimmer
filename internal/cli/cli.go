@@ -135,6 +135,7 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 
 	ptm := mutators.NewPodTemplateSpec(
 		mutators.WithDefaultMemoryLimitRequestRatio(viper.GetFloat64("default-memory-limit-request-ratio")),
+		mutators.WithDryRun(viper.GetBool("dry-run")),
 	)
 
 	handlers, err := getHandlers(viper.GetStringSlice("resources"), ptm)

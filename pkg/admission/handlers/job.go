@@ -43,7 +43,7 @@ func (j *JobHandler) Handle(ctx context.Context, req kadmission.Request) kadmiss
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := j.ptm.Mutate(out.Spec.Template, lrConfig)
+	pts, err := j.ptm.Mutate(ctx, out.Spec.Template, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate job %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)

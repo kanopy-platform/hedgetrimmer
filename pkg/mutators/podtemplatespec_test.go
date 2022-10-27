@@ -1,7 +1,7 @@
 package mutators
 
 import (
-	"os"
+	"context"
 	"testing"
 
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
@@ -10,15 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-var testPts *PodTemplateSpec
-
-func TestMain(m *testing.M) {
-	testPts = NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
-	os.Exit(m.Run())
-}
-
 func TestMutate(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	limitRangeMemory := &limitrange.Config{
 		HasDefaultRequest:       true,
@@ -85,7 +80,7 @@ func TestMutate(t *testing.T) {
 		for idx := range inputs {
 			input := inputs[idx]
 
-			result, err := testPts.Mutate(input, test.config)
+			result, err := pts.Mutate(context.Background(), input, test.config)
 			if test.wantError {
 				assert.Error(t, err, test.msg)
 			} else {
@@ -104,6 +99,8 @@ func TestMutate(t *testing.T) {
 
 func TestValidateMemoryRatio(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	memoryConfig := &limitrange.Config{
 		HasMaxLimitRequestRatio: true,
@@ -169,13 +166,37 @@ func TestValidateMemoryRatio(t *testing.T) {
 			},
 		}
 
-		err := testPts.validateMemoryRequirements(container, test.mc)
+		err := pts.validateMemoryRequirements(context.Background(), container, test.mc)
 		assert.Equal(t, test.wantError, err != nil, test.msg)
 	}
 }
 
+func TestValidateMemoryRatioDryRun(t *testing.T) {
+	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDryRun(true))
+
+	// Container Limit/Request ratio exceeds LimitRange Config but no error on dry-run
+	limitrangeConfig := &limitrange.Config{
+		HasMaxLimitRequestRatio: true,
+		MaxLimitRequestRatio:    resource.MustParse("1.25"),
+	}
+
+	container := corev1.Container{
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
+			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("3Gi")},
+		},
+	}
+
+	err := pts.validateMemoryRequirements(context.Background(), container, limitrangeConfig)
+	assert.NoError(t, err, "Do not error on validation failure for dry-run")
+}
+
 func TestSetMemoryRequest(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	memoryConfig := &limitrange.Config{
 		HasDefaultRequest: true,
@@ -246,13 +267,41 @@ func TestSetMemoryRequest(t *testing.T) {
 			},
 		}
 
-		testPts.setMemoryRequest(container, test.mc)
+		pts.setMemoryRequest(context.Background(), container, test.mc)
 		assert.Equal(t, wantContainer, container, test.msg)
 	}
 }
 
+func TestSetMemoryRequestDryRun(t *testing.T) {
+	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDryRun(true))
+
+	// LimitRange config defaults are not applied on dry-run
+	limitrangeConfig := &limitrange.Config{
+		HasDefaultRequest: true,
+		HasDefaultLimit:   true,
+		DefaultRequest:    resource.MustParse("5Gi"),
+		DefaultLimit:      resource.MustParse("6Gi"),
+	}
+
+	container := corev1.Container{
+		Resources: corev1.ResourceRequirements{
+			Requests: nil,
+			Limits:   nil,
+		},
+	}
+
+	containerCopy := *container.DeepCopy()
+
+	pts.setMemoryRequest(context.Background(), &container, limitrangeConfig)
+	assert.Equal(t, containerCopy, container, "Do not mutate for dry-run")
+}
+
 func TestSetMemoryLimit(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	memoryConfigWithoutMaxRatio := &limitrange.Config{
 		HasDefaultLimit:         true,
@@ -338,9 +387,33 @@ func TestSetMemoryLimit(t *testing.T) {
 			},
 		}
 
-		testPts.setMemoryLimit(&container, test.mc)
+		pts.setMemoryLimit(context.Background(), &container, test.mc)
 
 		assert.True(t, test.requests.Memory().Equal(*container.Resources.Requests.Memory()), test.msg)
 		assert.True(t, test.wantLimits.Memory().Equal(*container.Resources.Limits.Memory()), test.msg)
 	}
+}
+
+func TestSetMemoryLimitDryRun(t *testing.T) {
+	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDryRun(true))
+
+	// LimitRange config defaults are not applied on dry-run
+	limitrangeConfig := &limitrange.Config{
+		HasDefaultLimit: true,
+		DefaultLimit:    resource.MustParse("50Mi"),
+	}
+
+	container := corev1.Container{
+		Resources: corev1.ResourceRequirements{
+			Requests: nil,
+			Limits:   nil,
+		},
+	}
+
+	containerCopy := *container.DeepCopy()
+
+	pts.setMemoryLimit(context.Background(), &container, limitrangeConfig)
+	assert.Equal(t, containerCopy, container, "Do not mutate for dry-run")
 }

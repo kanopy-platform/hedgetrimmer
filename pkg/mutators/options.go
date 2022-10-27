@@ -13,3 +13,9 @@ func WithDefaultMemoryLimitRequestRatio(ratio float64) OptionsFunc {
 		pts.defaultMemoryLimitRequestRatio = resource.MustParse(fmt.Sprintf("%v", ratio))
 	}
 }
+
+func WithDryRun(dryRun bool) OptionsFunc {
+	return func(pts *PodTemplateSpec) {
+		pts.dryRun = dryRun
+	}
+}

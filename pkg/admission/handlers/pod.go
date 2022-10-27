@@ -53,7 +53,7 @@ func (p *PodHandler) Handle(ctx context.Context, req kadmission.Request) kadmiss
 		Spec: out.Spec,
 	}
 
-	pts, err := p.ptm.Mutate(mout, lrConfig)
+	pts, err := p.ptm.Mutate(ctx, mout, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate pod %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)
