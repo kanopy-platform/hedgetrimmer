@@ -58,7 +58,7 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 5
           ports:
-            - containerPort: 80
+            - containerPort: 8081
               name: metrics
             - containerPort: 8443
               name: webhooks
@@ -79,8 +79,8 @@ metadata:
     app: hedgetrimmer
 spec:
   ports:
-  - port: 80
-    targetPort: 80
+  - port: 8081
+    targetPort: 8081
     name: metrics   
   - port: 8443
     targetPort: 8443
