@@ -33,7 +33,7 @@ func (p *PodTemplateSpec) Mutate(ctx context.Context, inputPts corev1.PodTemplat
 
 	pts := *inputPts.DeepCopy()
 	if limitRangeMemory == nil {
-		return pts, fmt.Errorf("invalid limit range config")
+		return pts, p.errorIfNotDryRun(ctx, "invalid limit range config")
 	}
 
 	if err := p.setAndValidateResourceRequirements(ctx, pts.Spec.InitContainers, limitRangeMemory); err != nil {
@@ -50,6 +50,10 @@ func (p *PodTemplateSpec) Mutate(ctx context.Context, inputPts corev1.PodTemplat
 func (p *PodTemplateSpec) setAndValidateResourceRequirements(ctx context.Context, containers []corev1.Container, limitRangeMemory *limitrange.Config) error {
 	for idx := range containers {
 		container := &containers[idx]
+		if p.dryRun {
+			// On dry-run use a copy to go through the motions, do not modify actual
+			container = container.DeepCopy()
+		}
 
 		p.setMemoryRequest(ctx, container, limitRangeMemory)
 		p.setMemoryLimit(ctx, container, limitRangeMemory)
@@ -108,7 +112,7 @@ func (p *PodTemplateSpec) setMemoryRequest(ctx context.Context, container *corev
 		return
 	}
 
-	if container.Resources.Requests == nil && !p.dryRun {
+	if container.Resources.Requests == nil {
 		container.Resources.Requests = corev1.ResourceList{}
 	}
 
@@ -125,9 +129,8 @@ func (p *PodTemplateSpec) setMemoryRequest(ctx context.Context, container *corev
 	if !calculatedRequest.IsZero() {
 		if p.dryRun {
 			log.Info(fmt.Sprintf("[dry-run] setting memory request to %s", calculatedRequest.String()))
-		} else {
-			container.Resources.Requests[corev1.ResourceMemory] = calculatedRequest
 		}
+		container.Resources.Requests[corev1.ResourceMemory] = calculatedRequest
 	}
 }
 
@@ -140,7 +143,7 @@ func (p *PodTemplateSpec) setMemoryLimit(ctx context.Context, container *corev1.
 		return
 	}
 
-	if container.Resources.Limits == nil && !p.dryRun {
+	if container.Resources.Limits == nil {
 		container.Resources.Limits = corev1.ResourceList{}
 	}
 
@@ -156,8 +159,7 @@ func (p *PodTemplateSpec) setMemoryLimit(ctx context.Context, container *corev1.
 	if !calculatedLimit.IsZero() {
 		if p.dryRun {
 			log.Info(fmt.Sprintf("[dry-run] setting memory limit to %s", calculatedLimit.String()))
-		} else {
-			container.Resources.Limits[corev1.ResourceMemory] = calculatedLimit
 		}
+		container.Resources.Limits[corev1.ResourceMemory] = calculatedLimit
 	}
 }
