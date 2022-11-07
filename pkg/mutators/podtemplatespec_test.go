@@ -177,7 +177,7 @@ func TestMutateDryRun(t *testing.T) {
 	}
 }
 
-func TestValidateMemoryRatio(t *testing.T) {
+func TestValidateMemoryRequirements(t *testing.T) {
 	t.Parallel()
 
 	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
@@ -251,26 +251,60 @@ func TestValidateMemoryRatio(t *testing.T) {
 	}
 }
 
-func TestValidateMemoryRatioDryRun(t *testing.T) {
+func TestValidateMemoryRequirementsDryRun(t *testing.T) {
 	t.Parallel()
 
 	pts := NewPodTemplateSpec(WithDryRun(true))
 
-	// Container Limit/Request ratio exceeds LimitRange Config but no error on dry-run
 	limitrangeConfig := &limitrange.Config{
 		HasMaxLimitRequestRatio: true,
 		MaxLimitRequestRatio:    resource.MustParse("1.25"),
 	}
 
-	container := corev1.Container{
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
-			Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("3Gi")},
+	tests := []struct {
+		requests corev1.ResourceList
+		limits   corev1.ResourceList
+		mc       *limitrange.Config
+		msg      string
+	}{
+
+		{
+			msg:      "Memory request does not exist, error, no error on dry-run",
+			requests: corev1.ResourceList{},
+			limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1.26Gi")},
+			mc:       limitrangeConfig,
+		},
+		{
+			msg:      "Memory limit does not exist, error, no error on dry-run",
+			requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
+			limits:   corev1.ResourceList{},
+			mc:       limitrangeConfig,
+		},
+		{
+			msg:      "Memory limit is smaller than request, no error on dry-run",
+			requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("50Mi")},
+			limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("40Mi")},
+			mc:       limitrangeConfig,
+		},
+		{
+			msg:      "Memory limit/request ratio exceeds max ratio, no error on dry-run",
+			requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
+			limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("2.5Gi")},
+			mc:       limitrangeConfig,
 		},
 	}
 
-	err := pts.validateMemoryRequirements(context.Background(), container, limitrangeConfig)
-	assert.NoError(t, err, "Do not error on validation failure for dry-run")
+	for _, test := range tests {
+		container := corev1.Container{
+			Resources: corev1.ResourceRequirements{
+				Requests: test.requests,
+				Limits:   test.limits,
+			},
+		}
+
+		err := pts.validateMemoryRequirements(context.Background(), container, test.mc)
+		assert.NoError(t, err, test.msg)
+	}
 }
 
 func TestSetMemoryRequest(t *testing.T) {
