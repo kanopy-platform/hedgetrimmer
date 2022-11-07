@@ -59,33 +59,7 @@ func (p *PodTemplateSpec) setAndValidateResourceRequirements(ctx context.Context
 		p.setMemoryLimit(ctx, container, limitRangeMemory)
 
 		if err := p.validateMemoryRequirements(ctx, *container, limitRangeMemory); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (p *PodTemplateSpec) validateMemoryRequirements(ctx context.Context, container corev1.Container, limitRangeMemory *limitrange.Config) error {
-	memoryRequest := container.Resources.Requests.Memory()
-	memoryLimit := container.Resources.Limits.Memory()
-
-	if memoryRequest.IsZero() || memoryLimit.IsZero() {
-		errorStr := fmt.Sprintf("memory request (%s) and limit (%s) must be set", memoryRequest.String(), memoryLimit.String())
-		return p.errorIfNotDryRun(ctx, errorStr)
-	}
-
-	if memoryLimit.Cmp(*memoryRequest) == -1 {
-		errorStr := fmt.Sprintf("memory limit (%s) must be greater than request (%s)", memoryLimit.String(), memoryRequest.String())
-		return p.errorIfNotDryRun(ctx, errorStr)
-	}
-
-	if limitRangeMemory.HasMaxLimitRequestRatio {
-		ratio := quantity.Div(*memoryLimit, *memoryRequest, infScaleMicro)
-		if ratio.Cmp(limitRangeMemory.MaxLimitRequestRatio) == 1 {
-			errorStr := fmt.Sprintf("memory limit (%s) to request (%s) ratio (%s) exceeds MaxLimitRequestRatio (%s)",
-				memoryLimit.String(), memoryRequest.String(), ratio.String(), limitRangeMemory.MaxLimitRequestRatio.String())
-			return p.errorIfNotDryRun(ctx, errorStr)
+			return p.errorIfNotDryRun(ctx, err.Error())
 		}
 	}
 
@@ -101,6 +75,29 @@ func (p *PodTemplateSpec) errorIfNotDryRun(ctx context.Context, err string) erro
 	}
 
 	return errors.New(err)
+}
+
+func (p *PodTemplateSpec) validateMemoryRequirements(ctx context.Context, container corev1.Container, limitRangeMemory *limitrange.Config) error {
+	memoryRequest := container.Resources.Requests.Memory()
+	memoryLimit := container.Resources.Limits.Memory()
+
+	if memoryRequest.IsZero() || memoryLimit.IsZero() {
+		return fmt.Errorf("memory request (%s) and limit (%s) must be set", memoryRequest.String(), memoryLimit.String())
+	}
+
+	if memoryLimit.Cmp(*memoryRequest) == -1 {
+		return fmt.Errorf("memory limit (%s) must be greater than request (%s)", memoryLimit.String(), memoryRequest.String())
+	}
+
+	if limitRangeMemory.HasMaxLimitRequestRatio {
+		ratio := quantity.Div(*memoryLimit, *memoryRequest, infScaleMicro)
+		if ratio.Cmp(limitRangeMemory.MaxLimitRequestRatio) == 1 {
+			return fmt.Errorf("memory limit (%s) to request (%s) ratio (%s) exceeds MaxLimitRequestRatio (%s)",
+				memoryLimit.String(), memoryRequest.String(), ratio.String(), limitRangeMemory.MaxLimitRequestRatio.String())
+		}
+	}
+
+	return nil
 }
 
 func (p *PodTemplateSpec) setMemoryRequest(ctx context.Context, container *corev1.Container, limitRangeMemory *limitrange.Config) {
