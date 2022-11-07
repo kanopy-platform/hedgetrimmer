@@ -49,6 +49,7 @@ func NewRootCommand() *cobra.Command {
 
 	cmd.PersistentFlags().String("log-level", "info", "Configure log level")
 	cmd.PersistentFlags().Int("webhook-listen-port", 8443, "Admission webhook listen port")
+	cmd.PersistentFlags().Int("metrics-listen-port", 8081, "Metrics listen port")
 	cmd.PersistentFlags().String("webhook-certs-dir", "/etc/webhook/certs", "Admission webhook TLS certificate directory")
 	cmd.PersistentFlags().Bool("dry-run", false, "Controller dry-run changes only")
 	cmd.PersistentFlags().Float64("default-memory-limit-request-ratio", 1.1, "Default memory limit/request ratio")
@@ -101,7 +102,7 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		Host:                   "0.0.0.0",
 		Port:                   viper.GetInt("webhook-listen-port"),
 		CertDir:                viper.GetString("webhook-certs-dir"),
-		MetricsBindAddress:     "0.0.0.0:80",
+		MetricsBindAddress:     fmt.Sprintf("0.0.0.0:%d", viper.GetInt("metrics-listen-port")),
 		HealthProbeBindAddress: ":8080",
 		LeaderElection:         true,
 		LeaderElectionID:       "hedgetrimmer",
