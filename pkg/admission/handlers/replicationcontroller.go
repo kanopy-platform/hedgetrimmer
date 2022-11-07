@@ -43,7 +43,7 @@ func (r *ReplicationControllerHandler) Handle(ctx context.Context, req kadmissio
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := r.ptm.Mutate(*out.Spec.Template, lrConfig)
+	pts, err := r.ptm.Mutate(ctx, *out.Spec.Template, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate ReplicationController %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)

@@ -1,15 +1,19 @@
 package mutators
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	"github.com/kanopy-platform/hedgetrimmer/pkg/quantity"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type PodTemplateSpec struct {
+	dryRun                         bool
 	defaultMemoryLimitRequestRatio resource.Quantity
 }
 
@@ -25,40 +29,55 @@ func NewPodTemplateSpec(opts ...OptionsFunc) *PodTemplateSpec {
 	return pts
 }
 
-func (p *PodTemplateSpec) Mutate(inputPts corev1.PodTemplateSpec, limitRangeMemory *limitrange.Config) (corev1.PodTemplateSpec, error) {
+func (p *PodTemplateSpec) Mutate(ctx context.Context, inputPts corev1.PodTemplateSpec, limitRangeMemory *limitrange.Config) (corev1.PodTemplateSpec, error) {
 
 	pts := *inputPts.DeepCopy()
 	if limitRangeMemory == nil {
-		return pts, fmt.Errorf("invalid limit range config")
+		return pts, p.errorIfNotDryRun(ctx, "invalid limit range config")
 	}
 
-	if err := p.setAndValidateResourceRequirements(pts.Spec.InitContainers, limitRangeMemory); err != nil {
+	if err := p.setAndValidateResourceRequirements(ctx, pts.Spec.InitContainers, limitRangeMemory); err != nil {
 		return pts, err
 	}
 
-	if err := p.setAndValidateResourceRequirements(pts.Spec.Containers, limitRangeMemory); err != nil {
+	if err := p.setAndValidateResourceRequirements(ctx, pts.Spec.Containers, limitRangeMemory); err != nil {
 		return pts, err
 	}
 
 	return pts, nil
 }
 
-func (p *PodTemplateSpec) setAndValidateResourceRequirements(containers []corev1.Container, limitRangeMemory *limitrange.Config) error {
+func (p *PodTemplateSpec) setAndValidateResourceRequirements(ctx context.Context, containers []corev1.Container, limitRangeMemory *limitrange.Config) error {
 	for idx := range containers {
 		container := &containers[idx]
+		if p.dryRun {
+			// On dry-run use a copy to go through the motions, do not modify original
+			container = container.DeepCopy()
+		}
 
-		p.setMemoryRequest(container, limitRangeMemory)
-		p.setMemoryLimit(container, limitRangeMemory)
+		p.setMemoryRequest(ctx, container, limitRangeMemory)
+		p.setMemoryLimit(ctx, container, limitRangeMemory)
 
-		if err := p.validateMemoryRequirements(*container, limitRangeMemory); err != nil {
-			return err
+		if err := p.validateMemoryRequirements(ctx, *container, limitRangeMemory); err != nil {
+			return p.errorIfNotDryRun(ctx, err.Error())
 		}
 	}
 
 	return nil
 }
 
-func (p *PodTemplateSpec) validateMemoryRequirements(container corev1.Container, limitRangeMemory *limitrange.Config) error {
+func (p *PodTemplateSpec) errorIfNotDryRun(ctx context.Context, err string) error {
+	log := log.FromContext(ctx)
+
+	if p.dryRun {
+		log.Info(fmt.Sprintf("[dry-run] %s", err))
+		return nil
+	}
+
+	return errors.New(err)
+}
+
+func (p *PodTemplateSpec) validateMemoryRequirements(ctx context.Context, container corev1.Container, limitRangeMemory *limitrange.Config) error {
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
@@ -81,7 +100,8 @@ func (p *PodTemplateSpec) validateMemoryRequirements(container corev1.Container,
 	return nil
 }
 
-func (p *PodTemplateSpec) setMemoryRequest(container *corev1.Container, limitRangeMemory *limitrange.Config) {
+func (p *PodTemplateSpec) setMemoryRequest(ctx context.Context, container *corev1.Container, limitRangeMemory *limitrange.Config) {
+	log := log.FromContext(ctx)
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
@@ -93,16 +113,26 @@ func (p *PodTemplateSpec) setMemoryRequest(container *corev1.Container, limitRan
 		container.Resources.Requests = corev1.ResourceList{}
 	}
 
+	var calculatedRequest resource.Quantity
+
 	if !memoryLimit.IsZero() {
-		container.Resources.Requests[corev1.ResourceMemory] = *memoryLimit
+		calculatedRequest = *memoryLimit
 	} else if limitRangeMemory.HasDefaultRequest {
-		container.Resources.Requests[corev1.ResourceMemory] = limitRangeMemory.DefaultRequest
+		calculatedRequest = limitRangeMemory.DefaultRequest
 	} else if limitRangeMemory.HasDefaultLimit {
-		container.Resources.Requests[corev1.ResourceMemory] = limitRangeMemory.DefaultLimit
+		calculatedRequest = limitRangeMemory.DefaultLimit
+	}
+
+	if !calculatedRequest.IsZero() {
+		if p.dryRun {
+			log.Info(fmt.Sprintf("[dry-run] setting memory request to %s", calculatedRequest.String()))
+		}
+		container.Resources.Requests[corev1.ResourceMemory] = calculatedRequest
 	}
 }
 
-func (p *PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRangeMemory *limitrange.Config) {
+func (p *PodTemplateSpec) setMemoryLimit(ctx context.Context, container *corev1.Container, limitRangeMemory *limitrange.Config) {
+	log := log.FromContext(ctx)
 	memoryRequest := container.Resources.Requests.Memory()
 	memoryLimit := container.Resources.Limits.Memory()
 
@@ -124,6 +154,9 @@ func (p *PodTemplateSpec) setMemoryLimit(container *corev1.Container, limitRange
 	}
 
 	if !calculatedLimit.IsZero() {
+		if p.dryRun {
+			log.Info(fmt.Sprintf("[dry-run] setting memory limit to %s", calculatedLimit.String()))
+		}
 		container.Resources.Limits[corev1.ResourceMemory] = calculatedLimit
 	}
 }

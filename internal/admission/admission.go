@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -91,6 +92,14 @@ func (r *Router) Handle(ctx context.Context, req admission.Request) admission.Re
 	if handler == nil {
 		return admission.Denied(fmt.Sprintf("no handlers for %s version %s", kind.Kind, kind.Version))
 	}
+
+	logr := log.FromContext(ctx,
+		"resource", req.Resource,
+		"namespace", req.Namespace,
+		"name", req.Name,
+		"operation", req.Operation,
+	)
+	ctx = log.IntoContext(ctx, logr)
 
 	cfg, err := r.limitRanger.LimitRangeConfig(req.Namespace)
 	if err != nil {

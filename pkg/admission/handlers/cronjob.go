@@ -43,7 +43,7 @@ func (c *CronjobHandler) Handle(ctx context.Context, req kadmission.Request) kad
 		return kadmission.Errored(http.StatusBadRequest, err)
 	}
 
-	pts, err := c.ptm.Mutate(out.Spec.JobTemplate.Spec.Template, lrConfig)
+	pts, err := c.ptm.Mutate(ctx, out.Spec.JobTemplate.Spec.Template, lrConfig)
 	if err != nil {
 		reason := fmt.Sprintf("failed to mutate cronjob %s/%s: %s", out.Namespace, out.Name, err)
 		log.Error(err, reason)

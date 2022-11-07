@@ -1,7 +1,7 @@
 package mutators
 
 import (
-	"os"
+	"context"
 	"testing"
 
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
@@ -10,15 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-var testPts *PodTemplateSpec
-
-func TestMain(m *testing.M) {
-	testPts = NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
-	os.Exit(m.Run())
-}
-
 func TestMutate(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	limitRangeMemory := &limitrange.Config{
 		HasDefaultRequest:       true,
@@ -85,7 +80,7 @@ func TestMutate(t *testing.T) {
 		for idx := range inputs {
 			input := inputs[idx]
 
-			result, err := testPts.Mutate(input, test.config)
+			result, err := pts.Mutate(context.Background(), input, test.config)
 			if test.wantError {
 				assert.Error(t, err, test.msg)
 			} else {
@@ -97,13 +92,98 @@ func TestMutate(t *testing.T) {
 					assert.True(t, container.Resources.Requests.Memory().Equal(*wantRequest), test.msg)
 					assert.True(t, container.Resources.Limits.Memory().Equal(*wantLimit), test.msg)
 				}
+
+				for idx, container := range result.Spec.Containers {
+					wantRequest := test.want[idx].Resources.Requests.Memory()
+					wantLimit := test.want[idx].Resources.Limits.Memory()
+					assert.True(t, container.Resources.Requests.Memory().Equal(*wantRequest), test.msg)
+					assert.True(t, container.Resources.Limits.Memory().Equal(*wantLimit), test.msg)
+				}
 			}
 		}
 	}
 }
 
-func TestValidateMemoryRatio(t *testing.T) {
+func TestMutateDryRun(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDryRun(true))
+
+	limitRangeMemory := &limitrange.Config{
+		HasDefaultRequest:       true,
+		HasDefaultLimit:         true,
+		HasMaxLimitRequestRatio: true,
+		DefaultRequest:          resource.MustParse("50Mi"),
+		DefaultLimit:            resource.MustParse("64Mi"),
+		MaxLimitRequestRatio:    resource.MustParse("1.5"),
+	}
+
+	tests := []struct {
+		msg        string
+		containers []corev1.Container
+		config     *limitrange.Config
+		wantError  bool
+	}{
+		{
+			msg: "No request or limit specified, normally would apply defaults, but dry-run mode does not modify",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{},
+				},
+			},
+			config:    limitRangeMemory,
+			wantError: false,
+		},
+		{
+			msg: "Config is nil, normally would be an error, but dry-run mode does not error",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{},
+				},
+			},
+			config:    nil,
+			wantError: false,
+		},
+		{
+			msg: "User configured request & limit exceeds MaxLimitRequestRatio, but dry-run mode does not error on validation failure",
+			containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+					},
+				},
+			},
+			config:    limitRangeMemory,
+			wantError: false,
+		},
+	}
+
+	for _, test := range tests {
+		// test both InitContainers and Containers using the given input and want
+		inputs := []corev1.PodTemplateSpec{
+			{Spec: corev1.PodSpec{InitContainers: test.containers}},
+			{Spec: corev1.PodSpec{Containers: test.containers}},
+		}
+
+		for idx := range inputs {
+			input := inputs[idx]
+
+			result, err := pts.Mutate(context.Background(), input, test.config)
+			if test.wantError {
+				assert.Error(t, err, test.msg)
+			} else {
+				assert.NoError(t, err, test.msg)
+				assert.Equal(t, input, result, test.msg)
+			}
+		}
+	}
+}
+
+func TestValidateMemoryRequirements(t *testing.T) {
+	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	memoryConfig := &limitrange.Config{
 		HasMaxLimitRequestRatio: true,
@@ -169,13 +249,15 @@ func TestValidateMemoryRatio(t *testing.T) {
 			},
 		}
 
-		err := testPts.validateMemoryRequirements(container, test.mc)
+		err := pts.validateMemoryRequirements(context.Background(), container, test.mc)
 		assert.Equal(t, test.wantError, err != nil, test.msg)
 	}
 }
 
 func TestSetMemoryRequest(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	memoryConfig := &limitrange.Config{
 		HasDefaultRequest: true,
@@ -246,13 +328,15 @@ func TestSetMemoryRequest(t *testing.T) {
 			},
 		}
 
-		testPts.setMemoryRequest(container, test.mc)
+		pts.setMemoryRequest(context.Background(), container, test.mc)
 		assert.Equal(t, wantContainer, container, test.msg)
 	}
 }
 
 func TestSetMemoryLimit(t *testing.T) {
 	t.Parallel()
+
+	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
 	memoryConfigWithoutMaxRatio := &limitrange.Config{
 		HasDefaultLimit:         true,
@@ -338,7 +422,7 @@ func TestSetMemoryLimit(t *testing.T) {
 			},
 		}
 
-		testPts.setMemoryLimit(&container, test.mc)
+		pts.setMemoryLimit(context.Background(), &container, test.mc)
 
 		assert.True(t, test.requests.Memory().Equal(*container.Resources.Requests.Memory()), test.msg)
 		assert.True(t, test.wantLimits.Memory().Equal(*container.Resources.Limits.Memory()), test.msg)
