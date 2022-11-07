@@ -51,7 +51,7 @@ func (p *PodTemplateSpec) setAndValidateResourceRequirements(ctx context.Context
 	for idx := range containers {
 		container := &containers[idx]
 		if p.dryRun {
-			// On dry-run use a copy to go through the motions, do not modify actual
+			// On dry-run use a copy to go through the motions, do not modify original
 			container = container.DeepCopy()
 		}
 
