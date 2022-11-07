@@ -93,4 +93,4 @@ steps:
       secret_key:
         from_secret: ecr_secret_key
     when:
-      event: [tag]
+      event: [tag, pull_request]
