@@ -52,7 +52,7 @@ func TestMutate(t *testing.T) {
 			containers: []corev1.Container{
 				{
 					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5.1Gi")},
 					},
 				},
 			},
@@ -67,8 +67,8 @@ func TestMutate(t *testing.T) {
 			want: []corev1.Container{
 				{
 					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
-						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5632Mi")},
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5.1Gi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5744Mi")},
 					},
 				},
 			},
