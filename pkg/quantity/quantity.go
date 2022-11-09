@@ -36,23 +36,23 @@ func MulFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
 	return Mul(x, yQuantity), nil
 }
 
-// Returns x/y rounded up to the specified scale s.
+// Returns x/y rounded to the specified scale.
 // Note that inf.Scale is inverted. -2 means 100, 2 means 0.01.
-func Div(x resource.Quantity, y resource.Quantity, s inf.Scale) resource.Quantity {
+func Div(x resource.Quantity, y resource.Quantity, scale inf.Scale, rounder inf.Rounder) resource.Quantity {
 	result := resource.Quantity{}
 	result.Format = x.Format
 
-	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), s, inf.RoundUp)
+	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), scale, rounder)
 	return result
 }
 
-func DivFloat64(x resource.Quantity, y float64, s inf.Scale) (resource.Quantity, error) {
+func DivFloat64(x resource.Quantity, y float64, scale inf.Scale, rounder inf.Rounder) (resource.Quantity, error) {
 	yQuantity, err := resource.ParseQuantity(fmt.Sprintf("%v", y))
 	if err != nil {
 		return x, err
 	}
 
-	return Div(x, yQuantity, s), nil
+	return Div(x, yQuantity, scale, rounder), nil
 }
 
 func Min(x resource.Quantity, y resource.Quantity) resource.Quantity {
@@ -77,15 +77,15 @@ func Max(x resource.Quantity, y resource.Quantity) resource.Quantity {
 	return xCopy
 }
 
-// Rounds up input q to the nearest BinarySI representation Mi/Ki.
-func RoundUpBinarySI(q resource.Quantity) resource.Quantity {
+// Rounds input q to the nearest BinarySI representation Mi/Ki.
+func RoundBinarySI(q resource.Quantity, rounder inf.Rounder) resource.Quantity {
 	qCopy := q.DeepCopy()
 
 	// Note the implementation cannot use resource.RoundUp(), it operates using DecimalSI.
 	if qCopy.Cmp(TenMi) == 1 {
-		qCopy = roundUp(qCopy, OneMi)
+		qCopy = round(qCopy, OneMi, rounder)
 	} else {
-		qCopy = roundUp(qCopy, OneKi)
+		qCopy = round(qCopy, OneKi, rounder)
 	}
 
 	qCopy.Format = resource.BinarySI
@@ -93,6 +93,6 @@ func RoundUpBinarySI(q resource.Quantity) resource.Quantity {
 }
 
 // Performs integer division to round up q to the given unit.
-func roundUp(q resource.Quantity, unit resource.Quantity) resource.Quantity {
-	return Mul(Div(q, unit, 0), unit)
+func round(q resource.Quantity, unit resource.Quantity, rounder inf.Rounder) resource.Quantity {
+	return Mul(Div(q, unit, 0, rounder), unit)
 }

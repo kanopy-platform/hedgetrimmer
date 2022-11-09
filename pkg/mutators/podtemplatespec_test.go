@@ -15,14 +15,6 @@ func TestMutate(t *testing.T) {
 
 	pts := NewPodTemplateSpec(WithDefaultMemoryLimitRequestRatio(1.1))
 
-	limitRangeMemory := &limitrange.Config{
-		HasDefaultRequest:       true,
-		HasDefaultLimit:         true,
-		HasMaxLimitRequestRatio: false,
-		DefaultRequest:          resource.MustParse("50Mi"),
-		DefaultLimit:            resource.MustParse("64Mi"),
-	}
-
 	tests := []struct {
 		msg        string
 		containers []corev1.Container
@@ -37,7 +29,13 @@ func TestMutate(t *testing.T) {
 					Resources: corev1.ResourceRequirements{},
 				},
 			},
-			config: limitRangeMemory,
+			config: &limitrange.Config{
+				HasDefaultRequest:       true,
+				HasDefaultLimit:         true,
+				HasMaxLimitRequestRatio: false,
+				DefaultRequest:          resource.MustParse("50Mi"),
+				DefaultLimit:            resource.MustParse("64Mi"),
+			},
 			want: []corev1.Container{
 				{
 					Resources: corev1.ResourceRequirements{
@@ -53,16 +51,23 @@ func TestMutate(t *testing.T) {
 			containers: []corev1.Container{
 				{
 					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5.1Gi")},
 					},
 				},
 			},
-			config: limitRangeMemory,
+			config: &limitrange.Config{
+				HasDefaultRequest:       true,
+				HasDefaultLimit:         true,
+				HasMaxLimitRequestRatio: true,
+				DefaultRequest:          resource.MustParse("50Mi"),
+				DefaultLimit:            resource.MustParse("64Mi"),
+				MaxLimitRequestRatio:    resource.MustParse("1.1"),
+			},
 			want: []corev1.Container{
 				{
 					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5Gi")},
-						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5632Mi")},
+						Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5.1Gi")},
+						Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("5744Mi")},
 					},
 				},
 			},
@@ -391,14 +396,14 @@ func TestSetMemoryLimit(t *testing.T) {
 			requests:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("49Mi")},
 			limits:     corev1.ResourceList{},
 			mc:         memoryConfigWithoutMaxRatio,
-			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("54Mi")},
+			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("53Mi")},
 		},
 		{
 			msg:        "MaxLimitRequestMemoryRatio set, defaultMemoryLimit and defaultLimitRequestMemoryRatio both larger, use MaxLimitRequestMemoryRatio",
 			requests:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("45Mi")},
 			limits:     corev1.ResourceList{},
 			mc:         memoryConfigWithMaxRatio,
-			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("48Mi")},
+			wantLimits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("47Mi")},
 		},
 		{
 			msg:      "MaxLimitRequestMemoryRatio set, defaultMemoryLimit and defaultLimitRequestMemoryRatio both smaller, use MaxLimitRequestMemoryRatio",

@@ -7,6 +7,7 @@ import (
 
 	"github.com/kanopy-platform/hedgetrimmer/pkg/limitrange"
 	"github.com/kanopy-platform/hedgetrimmer/pkg/quantity"
+	"gopkg.in/inf.v0"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -90,7 +91,7 @@ func (p *PodTemplateSpec) validateMemoryRequirements(ctx context.Context, contai
 	}
 
 	if limitRangeMemory.HasMaxLimitRequestRatio {
-		ratio := quantity.Div(*memoryLimit, *memoryRequest, infScaleMicro)
+		ratio := quantity.Div(*memoryLimit, *memoryRequest, infScaleMicro, inf.RoundUp)
 		if ratio.Cmp(limitRangeMemory.MaxLimitRequestRatio) == 1 {
 			return fmt.Errorf("memory limit (%s) to request (%s) ratio (%s) exceeds MaxLimitRequestRatio (%s)",
 				memoryLimit.String(), memoryRequest.String(), ratio.String(), limitRangeMemory.MaxLimitRequestRatio.String())
@@ -147,9 +148,9 @@ func (p *PodTemplateSpec) setMemoryLimit(ctx context.Context, container *corev1.
 	var calculatedLimit resource.Quantity
 
 	if limitRangeMemory.HasMaxLimitRequestRatio && !memoryRequest.IsZero() {
-		calculatedLimit = quantity.RoundUpBinarySI(quantity.Mul(*memoryRequest, limitRangeMemory.MaxLimitRequestRatio))
+		calculatedLimit = quantity.RoundBinarySI(quantity.Mul(*memoryRequest, limitRangeMemory.MaxLimitRequestRatio), inf.RoundDown)
 	} else {
-		ratioMemoryLimit := quantity.RoundUpBinarySI(quantity.Mul(*memoryRequest, p.defaultMemoryLimitRequestRatio))
+		ratioMemoryLimit := quantity.RoundBinarySI(quantity.Mul(*memoryRequest, p.defaultMemoryLimitRequestRatio), inf.RoundDown)
 		calculatedLimit = quantity.Max(limitRangeMemory.DefaultLimit, ratioMemoryLimit)
 	}
 
