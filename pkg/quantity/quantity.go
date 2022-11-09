@@ -36,23 +36,23 @@ func MulFloat64(x resource.Quantity, y float64) (resource.Quantity, error) {
 	return Mul(x, yQuantity), nil
 }
 
-// Returns x/y rounded to the specified scale s.
+// Returns x/y rounded to the specified scale.
 // Note that inf.Scale is inverted. -2 means 100, 2 means 0.01.
-func Div(x resource.Quantity, y resource.Quantity, s inf.Scale, rounder inf.Rounder) resource.Quantity {
+func Div(x resource.Quantity, y resource.Quantity, scale inf.Scale, rounder inf.Rounder) resource.Quantity {
 	result := resource.Quantity{}
 	result.Format = x.Format
 
-	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), s, rounder)
+	result.AsDec().QuoRound(x.AsDec(), y.AsDec(), scale, rounder)
 	return result
 }
 
-func DivFloat64(x resource.Quantity, y float64, s inf.Scale, rounder inf.Rounder) (resource.Quantity, error) {
+func DivFloat64(x resource.Quantity, y float64, scale inf.Scale, rounder inf.Rounder) (resource.Quantity, error) {
 	yQuantity, err := resource.ParseQuantity(fmt.Sprintf("%v", y))
 	if err != nil {
 		return x, err
 	}
 
-	return Div(x, yQuantity, s, rounder), nil
+	return Div(x, yQuantity, scale, rounder), nil
 }
 
 func Min(x resource.Quantity, y resource.Quantity) resource.Quantity {

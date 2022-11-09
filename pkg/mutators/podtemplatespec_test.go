@@ -35,7 +35,6 @@ func TestMutate(t *testing.T) {
 				HasMaxLimitRequestRatio: false,
 				DefaultRequest:          resource.MustParse("50Mi"),
 				DefaultLimit:            resource.MustParse("64Mi"),
-				MaxLimitRequestRatio:    resource.MustParse("1.1"),
 			},
 			want: []corev1.Container{
 				{
