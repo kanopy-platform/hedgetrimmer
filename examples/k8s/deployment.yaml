@@ -120,6 +120,12 @@ webhooks:
   failurePolicy: Ignore
   name: v1beta1.hedgetrimmer.kanopy-platform.github.io
   reinvocationPolicy: IfNeeded
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: NotIn
+      values:
+      - kube-system
   rules:
   - apiGroups:
     - apps
