@@ -13,8 +13,8 @@ metadata:
 spec:
   secretName: hedgetrimmer
   dnsNames:
-    - hedgetrimmer.devops.svc
-    - hedgetrimmer.devops.svc.cluster.local
+    - hedgetrimmer.hedgetrimmer.svc
+    - hedgetrimmer.hedgetrimmer.svc.cluster.local
   issuerRef:
     name: hedgetrimmer-selfsigned
 
@@ -41,6 +41,11 @@ spec:
           args:
             - "--log-level=debug"
           imagePullPolicy: Always
+          resources:
+            requests:
+              memory: 20Mi
+            limits:
+              memory: 20Mi
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -106,7 +111,7 @@ metadata:
   creationTimestamp: null
   name: hedgetrimmer
   annotations:
-    cert-manager.io/inject-ca-from: devops/hedgetrimmer
+    cert-manager.io/inject-ca-from: hedgetrimmer/hedgetrimmer
 webhooks:
 - clientConfig:
     caBundle: Cg==
@@ -114,7 +119,7 @@ webhooks:
       name: hedgetrimmer
       path: /mutate
       port: 8443
-      namespace: "devops"
+      namespace: "hedgetrimmer"
   sideEffects: None
   admissionReviewVersions: ["v1", "v1beta1"]
   failurePolicy: Ignore

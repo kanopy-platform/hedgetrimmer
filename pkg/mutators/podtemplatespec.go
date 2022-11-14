@@ -125,9 +125,7 @@ func (p *PodTemplateSpec) setMemoryRequest(ctx context.Context, container *corev
 	}
 
 	if !calculatedRequest.IsZero() {
-		if p.dryRun {
-			log.Info(fmt.Sprintf("[dry-run] setting memory request to %s", calculatedRequest.String()))
-		}
+		log.Info(fmt.Sprintf("setting memory request to %s", calculatedRequest.String()))
 		container.Resources.Requests[corev1.ResourceMemory] = calculatedRequest
 	}
 }
@@ -155,9 +153,7 @@ func (p *PodTemplateSpec) setMemoryLimit(ctx context.Context, container *corev1.
 	}
 
 	if !calculatedLimit.IsZero() {
-		if p.dryRun {
-			log.Info(fmt.Sprintf("[dry-run] setting memory limit to %s", calculatedLimit.String()))
-		}
+		log.Info(fmt.Sprintf("setting memory limit to %s", calculatedLimit.String()))
 		container.Resources.Limits[corev1.ResourceMemory] = calculatedLimit
 	}
 }

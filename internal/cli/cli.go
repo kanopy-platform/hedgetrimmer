@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -25,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	klog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	k8szap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -79,7 +80,12 @@ func (c *RootCommand) persistentPreRunE(cmd *cobra.Command, args []string) error
 		return err
 	}
 
-	klog.SetLogger(zap.New(zap.Level(logLevel)))
+	klog.SetLogger(k8szap.New(
+		k8szap.Level(logLevel),
+		k8szap.RawZapOpts(
+			zap.Fields(zap.Bool("dry-run", viper.GetBool("dry-run"))),
+		)),
+	)
 
 	return nil
 }
