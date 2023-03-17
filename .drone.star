@@ -41,20 +41,21 @@ def main(ctx):
         bsnp = set_when(bsnp, {"event":["pull_request"]})
         bsnp = append_depends_on(bsnp, pre_build_steps.keys())
         bsnp = append_volumes(bsnp, volumes)
+        pipe["steps"].append(bsnp)
 
         bs = build(plat, False, True)
         bs = set_when(bs, {"event":["push"]})
         bs = append_depends_on(bs, pre_build_steps.keys())
         bs = append_volumes(bs, volumes)
+        pipe["steps"].append(bs)
 
         bstp = build(plat, True, True)
         bstp = set_when(bstp, {"event":["tag"]})
         bstp = append_depends_on(bstp, pre_build_steps.keys())
         bstp = append_volumes(bstp, volumes)
-        pipe["steps"].append([bsnp, bs, bstp])
+        pipe["steps"].append(bstp)
 
         pipelines.append(pipe)
-
 
     return pipelines
 
