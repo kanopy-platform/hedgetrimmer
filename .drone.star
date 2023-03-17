@@ -20,39 +20,51 @@ def main(ctx):
 
     trigger = { "branch": ["main"] }
 
-    pre_build_steps = {
+    test_steps = {
         "test": append_volumes(test_step(), volumes),
-        "license": append_volumes(license_step(), volumes),
     }
-     
-    pipelines = []
+    
+    pipelines = [
+        {
+            "kind": "pipeline",
+            "type": "kubernetes",
+            "name": "pre-build",
+            "resources": resources,
+            "steps": [append_volumes(license_step(), volumes)],
+            "trigger": trigger,
+            "volumes": volumes
+        }
+    ]
     for plat in platforms:
         pipe = { 
             "kind": "pipeline",
             "type": "kubernetes",
             "name": plat,
             "platform": { "arch": plat },
+            "resources": resources,
+            "steps": [v for v in test_steps.values()],
             "trigger": trigger,
-            "steps": [v for v in pre_build_steps.values()]
+            "volumes": volumes
         }
 
+        pipe = append_depends_on(pipe, ["pre-build"])
 
-        bsnp = build(plat, False, False)
+        bsnp = build("build", plat, False, False)
         bsnp = set_when(bsnp, {"event":["pull_request"]})
-        bsnp = append_depends_on(bsnp, pre_build_steps.keys())
+        bsnp = append_depends_on(bsnp, test_steps.keys())
         bsnp = append_volumes(bsnp, volumes)
         pipe["steps"].append(bsnp)
 
-        bs = build(plat, False, True)
+        bs = build("publish", plat, False, True)
         bs = set_when(bs, {"event":["push"]})
-        bs = append_depends_on(bs, pre_build_steps.keys())
+        bs = append_depends_on(bs, test_steps.keys())
         bs = append_volumes(bs, volumes)
         pipe["steps"].append(bs)
 
-        bstp = build(plat, True, True)
+        bstp = build("publish-tag",plat, True, True)
         bstp = set_when(bstp, {"event":["tag"]})
-        bstp = append_depends_on(bstp, pre_build_steps.keys())
         bstp = append_volumes(bstp, volumes)
+        bstp = append_depends_on(bstp, test_steps.keys())
         pipe["steps"].append(bstp)
 
         pipelines.append(pipe)
@@ -60,9 +72,9 @@ def main(ctx):
     return pipelines
 
 
-def build(arch, tag, publish):
+def build(name, arch, tag, publish):
     step = {
-       "name": "publish",
+       "name": name,
        "image": "plugins/kaniko-ecr",
        "pull": "always",
        "environment": {
