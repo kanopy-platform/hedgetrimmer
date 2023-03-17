@@ -33,8 +33,9 @@ def main(ctx):
             "name": plat,
             "platform": { "arch": plat },
             "trigger": trigger,
-            "steps": [ pre_build_steps.values() ]
+            "steps": [v for v in pre_build_steps.values()]
         }
+
 
         bsnp = build(plat, False, False)
         bsnp = set_when(bsnp, {"event":["pull_request"]})

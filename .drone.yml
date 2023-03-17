@@ -4,22 +4,22 @@ name: amd64
 platform:
   arch: amd64
 steps:
-- - commands:
-    - make test
-    image: golangci/golangci-lint:v1.49.0
-    name: test
-    pull: always
-    volumes:
-    - name: cache
-      path: /go
-  - commands:
-    - licensed cache
-    - licensed status
-    image: public.ecr.aws/kanopy/licensed-go:3.7.3
-    name: license-check
-    volumes:
-    - name: cache
-      path: /go
+- commands:
+  - make test
+  image: golangci/golangci-lint:v1.49.0
+  name: test
+  pull: always
+  volumes:
+  - name: cache
+    path: /go
+- commands:
+  - licensed cache
+  - licensed status
+  image: public.ecr.aws/kanopy/licensed-go:3.7.3
+  name: license-check
+  volumes:
+  - name: cache
+    path: /go
 - - depends_on:
     - test
     - license
@@ -108,22 +108,22 @@ name: arm64
 platform:
   arch: arm64
 steps:
-- - commands:
-    - make test
-    image: golangci/golangci-lint:v1.49.0
-    name: test
-    pull: always
-    volumes:
-    - name: cache
-      path: /go
-  - commands:
-    - licensed cache
-    - licensed status
-    image: public.ecr.aws/kanopy/licensed-go:3.7.3
-    name: license-check
-    volumes:
-    - name: cache
-      path: /go
+- commands:
+  - make test
+  image: golangci/golangci-lint:v1.49.0
+  name: test
+  pull: always
+  volumes:
+  - name: cache
+    path: /go
+- commands:
+  - licensed cache
+  - licensed status
+  image: public.ecr.aws/kanopy/licensed-go:3.7.3
+  name: license-check
+  volumes:
+  - name: cache
+    path: /go
 - - depends_on:
     - test
     - license
