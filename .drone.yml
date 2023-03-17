@@ -30,7 +30,7 @@ steps:
   environment:
     GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
   image: plugins/kaniko-ecr
-  name: publish
+  name: build
   pull: always
   settings:
     build_args:
@@ -46,6 +46,33 @@ steps:
   when:
     event:
     - pull_request
+- depends_on:
+  - test
+  - license-check
+  environment:
+    GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
+  image: plugins/kaniko-ecr
+  name: publish
+  pull: always
+  settings:
+    access_key:
+      from_secret: ecr_access_key
+    build_args:
+    - GIT_COMMIT
+    registry:
+      from_secret: ecr_registry
+    repo: ${DRONE_REPO_NAME}
+    secret_key:
+      from_secret: ecr_secret_key
+    tags:
+    - git-${DRONE_COMMIT_SHA:0:7}-amd64
+    - latest-amd64
+  volumes:
+  - name: cache
+    path: /go
+  when:
+    event:
+    - push
 trigger:
   branch:
   - main
@@ -85,7 +112,7 @@ steps:
   environment:
     GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
   image: plugins/kaniko-ecr
-  name: publish
+  name: build
   pull: always
   settings:
     build_args:
@@ -101,6 +128,33 @@ steps:
   when:
     event:
     - pull_request
+- depends_on:
+  - test
+  - license-check
+  environment:
+    GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
+  image: plugins/kaniko-ecr
+  name: publish
+  pull: always
+  settings:
+    access_key:
+      from_secret: ecr_access_key
+    build_args:
+    - GIT_COMMIT
+    registry:
+      from_secret: ecr_registry
+    repo: ${DRONE_REPO_NAME}
+    secret_key:
+      from_secret: ecr_secret_key
+    tags:
+    - git-${DRONE_COMMIT_SHA:0:7}-arm64
+    - latest-arm64
+  volumes:
+  - name: cache
+    path: /go
+  when:
+    event:
+    - push
 trigger:
   branch:
   - main
