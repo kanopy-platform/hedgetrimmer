@@ -23,7 +23,7 @@ def main(ctx):
     test_steps = {
         "test": append_volumes(test_step(), volumes),
     }
-    
+
     pipelines = [
         {
             "kind": "pipeline",
@@ -33,10 +33,11 @@ def main(ctx):
             "steps": [append_volumes(license_step(), volumes)],
             "trigger": trigger,
             "volumes": volumes
+            "workspace": workspace
         }
     ]
     for plat in platforms:
-        pipe = { 
+        pipe = {
             "kind": "pipeline",
             "type": "kubernetes",
             "name": plat,
@@ -44,7 +45,8 @@ def main(ctx):
             "resources": resources,
             "steps": [v for v in test_steps.values()],
             "trigger": trigger,
-            "volumes": volumes
+            "volumes": volumes,'
+            "workspace": workspace
         }
 
         pipe = append_depends_on(pipe, ["pre-build"])
