@@ -32,7 +32,7 @@ def main(ctx):
             "resources": resources,
             "steps": [append_volumes(license_step(), volumes)],
             "trigger": trigger,
-            "volumes": volumes
+            "volumes": volumes,
             "workspace": workspace
         }
     ]
@@ -45,7 +45,7 @@ def main(ctx):
             "resources": resources,
             "steps": [v for v in test_steps.values()],
             "trigger": trigger,
-            "volumes": volumes,'
+            "volumes": volumes,
             "workspace": workspace
         }
 
