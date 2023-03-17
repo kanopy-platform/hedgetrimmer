@@ -25,13 +25,11 @@ steps:
     - license
     environment:
       GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
-      VERSION: ${DRONE_TAG}
     image: plugins/kaniko-ecr
     name: publish
     pull: always
     settings:
       build_args:
-      - VERSION
       - GIT_COMMIT
       no_push: true
       repo: ${DRONE_REPO_NAME}
@@ -49,7 +47,6 @@ steps:
     - license
     environment:
       GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
-      VERSION: ${DRONE_TAG}
     image: plugins/kaniko-ecr
     name: publish
     pull: always
@@ -57,7 +54,6 @@ steps:
       access_key:
         from_secret: ecr_access_key
       build_args:
-      - VERSION
       - GIT_COMMIT
       registry:
         from_secret: ecr_registry
@@ -78,7 +74,7 @@ steps:
     - license
     environment:
       GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
-      VERSION: ${DRONE_TAG}
+      VERSION: ${DRONE_TAG}-amd64
     image: plugins/kaniko-ecr
     name: publish
     pull: always
@@ -86,8 +82,8 @@ steps:
       access_key:
         from_secret: ecr_access_key
       build_args:
-      - VERSION
       - GIT_COMMIT
+      - VERSION
       registry:
         from_secret: ecr_registry
       repo: ${DRONE_REPO_NAME}
@@ -133,13 +129,11 @@ steps:
     - license
     environment:
       GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
-      VERSION: ${DRONE_TAG}
     image: plugins/kaniko-ecr
     name: publish
     pull: always
     settings:
       build_args:
-      - VERSION
       - GIT_COMMIT
       no_push: true
       repo: ${DRONE_REPO_NAME}
@@ -157,7 +151,6 @@ steps:
     - license
     environment:
       GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
-      VERSION: ${DRONE_TAG}
     image: plugins/kaniko-ecr
     name: publish
     pull: always
@@ -165,7 +158,6 @@ steps:
       access_key:
         from_secret: ecr_access_key
       build_args:
-      - VERSION
       - GIT_COMMIT
       registry:
         from_secret: ecr_registry
@@ -186,7 +178,7 @@ steps:
     - license
     environment:
       GIT_COMMIT: ${DRONE_COMMIT_SHA:0:7}
-      VERSION: ${DRONE_TAG}
+      VERSION: ${DRONE_TAG}-arm64
     image: plugins/kaniko-ecr
     name: publish
     pull: always
@@ -194,8 +186,8 @@ steps:
       access_key:
         from_secret: ecr_access_key
       build_args:
-      - VERSION
       - GIT_COMMIT
+      - VERSION
       registry:
         from_secret: ecr_registry
       repo: ${DRONE_REPO_NAME}

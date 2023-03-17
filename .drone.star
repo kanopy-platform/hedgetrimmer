@@ -64,13 +64,11 @@ def build(arch, tag, publish):
        "image": "plugins/kaniko-ecr",
        "pull": "always",
        "environment": {
-           "VERSION": "${DRONE_TAG}",
            "GIT_COMMIT": "${DRONE_COMMIT_SHA:0:7}",
        },
        "settings": {
             "repo": "${DRONE_REPO_NAME}",
             "build_args": [
-                "VERSION",
                 "GIT_COMMIT",
             ],
             "tags": [
@@ -81,6 +79,8 @@ def build(arch, tag, publish):
 
     if tag:
         step["settings"]["tags"].append("${DRONE_TAG}-" + arch)
+        step["environment"]["VERSION"] = "${DRONE_TAG}-" + arch
+        step["settings"]["build_args"].append("VERSION")
     else:
         step["settings"]["tags"].append("latest-" + arch)
 
