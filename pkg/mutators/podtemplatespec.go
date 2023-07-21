@@ -83,18 +83,18 @@ func (p *PodTemplateSpec) validateMemoryRequirements(ctx context.Context, contai
 	memoryLimit := container.Resources.Limits.Memory()
 
 	if memoryRequest.IsZero() || memoryLimit.IsZero() {
-		return fmt.Errorf("memory request (%s) and limit (%s) must be set", memoryRequest.String(), memoryLimit.String())
+		return fmt.Errorf("container %q: memory request (%s) and limit (%s) must be set", container.Name, memoryRequest.String(), memoryLimit.String())
 	}
 
 	if memoryLimit.Cmp(*memoryRequest) == -1 {
-		return fmt.Errorf("memory limit (%s) must be greater than request (%s)", memoryLimit.String(), memoryRequest.String())
+		return fmt.Errorf("container %q: memory limit (%s) must be greater than request (%s)", container.Name, memoryLimit.String(), memoryRequest.String())
 	}
 
 	if limitRangeMemory.HasMaxLimitRequestRatio {
 		ratio := quantity.Div(*memoryLimit, *memoryRequest, infScaleMicro, inf.RoundUp)
 		if ratio.Cmp(limitRangeMemory.MaxLimitRequestRatio) == 1 {
-			return fmt.Errorf("memory limit (%s) to request (%s) ratio (%s) exceeds MaxLimitRequestRatio (%s)",
-				memoryLimit.String(), memoryRequest.String(), ratio.String(), limitRangeMemory.MaxLimitRequestRatio.String())
+			return fmt.Errorf("container %q: memory limit (%s) to request (%s) ratio (%s) exceeds MaxLimitRequestRatio (%s)",
+				container.Name, memoryLimit.String(), memoryRequest.String(), ratio.String(), limitRangeMemory.MaxLimitRequestRatio.String())
 		}
 	}
 
@@ -125,7 +125,7 @@ func (p *PodTemplateSpec) setMemoryRequest(ctx context.Context, container *corev
 	}
 
 	if !calculatedRequest.IsZero() {
-		log.Info(fmt.Sprintf("setting memory request to %s", calculatedRequest.String()))
+		log.Info(fmt.Sprintf("container %q: setting memory request to %s", container.Name, calculatedRequest.String()))
 		container.Resources.Requests[corev1.ResourceMemory] = calculatedRequest
 	}
 }
@@ -153,7 +153,7 @@ func (p *PodTemplateSpec) setMemoryLimit(ctx context.Context, container *corev1.
 	}
 
 	if !calculatedLimit.IsZero() {
-		log.Info(fmt.Sprintf("setting memory limit to %s", calculatedLimit.String()))
+		log.Info(fmt.Sprintf("container %q: setting memory limit to %s", container.Name, calculatedLimit.String()))
 		container.Resources.Limits[corev1.ResourceMemory] = calculatedLimit
 	}
 }
