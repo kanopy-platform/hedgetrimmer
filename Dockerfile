@@ -7,7 +7,7 @@ RUN go mod download
 COPY . .
 RUN go build -ldflags="-X 'github.com/kanopy-platform/hedgetrimmer/internal/version.version=${VERSION}' -X 'github.com/kanopy-platform/hedgetrimmer/internal/version.gitCommit=${GIT_COMMIT}'" -o /go/bin/app
 
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 RUN apt-get update && apt-get install --yes ca-certificates
 RUN groupadd -r app && useradd --no-log-init -r -g app app
 USER app
