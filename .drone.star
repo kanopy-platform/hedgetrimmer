@@ -18,7 +18,7 @@ def main(ctx):
          }
     }
 
-    trigger = { "branch": ["main"] }
+    trigger = { "branch": ["main", "update_go_mod"] }
 
     test_steps = {
         "test": append_volumes(test_step(), volumes),
@@ -105,7 +105,7 @@ def build(name, arch, tag, publish):
         step["settings"]["access_key"] = { "from_secret": "ecr_access_key" }
         step["settings"]["secret_key"] = { "from_secret": "ecr_secret_key" }
     else:
-        step["settings"]["no_push"] = False
+        step["settings"]["no_push"] = True
    
     return step
 
