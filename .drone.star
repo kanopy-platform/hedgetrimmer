@@ -120,7 +120,7 @@ def test_step():
 def license_step():
     return {
        "name": "license-check",
-       "image": "public.ecr.aws/kanopy/licensed-go:3.7.3",
+       "image": "public.ecr.aws/kanopy/licensed-go:4.0.4-0.3.0",
        "commands": ["licensed cache", "licensed status"]
     }
     
