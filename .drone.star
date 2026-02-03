@@ -18,7 +18,7 @@ def main(ctx):
          }
     }
 
-    trigger = { "branch": ["main", "update_go_mod"] }
+    trigger = { "branch": ["main"] }
 
     test_steps = {
         "test": append_volumes(test_step(), volumes),
