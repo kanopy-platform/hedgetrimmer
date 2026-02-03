@@ -35,6 +35,8 @@ func (d *DeploymentHandler) Handle(ctx context.Context, req kadmission.Request) 
 	}
 
 	out := &appsv1.Deployment{}
+	log.Info("yuzhou debug", "decoder", d.decoder)
+
 	if err := d.decoder.Decode(req, out); err != nil {
 		log.Error(err, fmt.Sprintf("failed to decode deployment requests: %s", req.Name))
 		return kadmission.Errored(http.StatusBadRequest, err)
