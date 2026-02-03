@@ -3,7 +3,6 @@ package handlers
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,9 +16,7 @@ func TestStatefulSetHandler(t *testing.T) {
 	scheme := runtime.NewScheme()
 	decoder := admission.NewDecoder(scheme)
 
-	handler := NewStatefulSetHandler(&mm)
-
-	assert.NoError(t, handler.InjectDecoder(decoder))
+	handler := NewStatefulSetHandler(decoder, &mm)
 
 	sts := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{

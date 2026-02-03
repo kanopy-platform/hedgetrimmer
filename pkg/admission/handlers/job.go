@@ -14,13 +14,13 @@ import (
 )
 
 type JobHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewJobHandler(ptm admission.PodTemplateSpecMutator) *JobHandler {
-	return &JobHandler{ptm: ptm}
+func NewJobHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *JobHandler {
+	return &JobHandler{decoder: decoder, ptm: ptm}
 }
 
 func (j *JobHandler) Kind() string {

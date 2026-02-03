@@ -116,9 +116,8 @@ func TestAllowObjects(t *testing.T) {
 	mlr := &MockLimitRanger{
 		lrc: &limitrange.Config{},
 	}
-	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}, &MockReplicaSetHandler{}))
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{MockHandler{decoder: decoder}}, &MockReplicaSetHandler{MockHandler{decoder: decoder}}))
 	assert.NoError(t, err)
-	assert.NoError(t, r.InjectDecoder(decoder))
 
 	tests := []struct {
 		object      runtime.Object
@@ -192,11 +191,6 @@ type MockHandler struct {
 
 func (m *MockHandler) VersionSupported(v string) bool {
 	return true
-}
-
-func (m *MockHandler) InjectDecoder(dec admission.Decoder) error {
-	m.decoder = dec
-	return nil
 }
 
 func (m *MockHandler) PatchResponse(raw []byte, v interface{}) admission.Response {

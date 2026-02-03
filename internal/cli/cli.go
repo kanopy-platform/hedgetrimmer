@@ -154,7 +154,9 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		mutators.WithDryRun(viper.GetBool("dry-run")),
 	)
 
-	handlers, err := getHandlers(viper.GetStringSlice("resources"), ptm)
+	decoder := webhookadmission.NewDecoder(mgr.GetScheme())
+
+	handlers, err := getHandlers(viper.GetStringSlice("resources"), decoder, ptm)
 	if err != nil {
 		return err
 	}
@@ -163,10 +165,6 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		admission.WithAdmissionHandlers(handlers...),
 	)
 	if err != nil {
-		return err
-	}
-
-	if err := admissionRouter.InjectDecoder(webhookadmission.NewDecoder(mgr.GetScheme())); err != nil {
 		return err
 	}
 
@@ -186,7 +184,7 @@ func configureHealthChecks(mgr manager.Manager) error {
 	return nil
 }
 
-func getHandlers(resources []string, ptm pkgadmission.PodTemplateSpecMutator) ([]admission.AdmissionHandler, error) {
+func getHandlers(resources []string, decoder webhookadmission.Decoder, ptm pkgadmission.PodTemplateSpecMutator) ([]admission.AdmissionHandler, error) {
 	var handlers []admission.AdmissionHandler
 	var unexpected []string
 
@@ -198,21 +196,21 @@ func getHandlers(resources []string, ptm pkgadmission.PodTemplateSpecMutator) ([
 	for resource := range dedupedResources {
 		switch resource {
 		case cronjobs:
-			handlers = append(handlers, pkghandlers.NewCronjobHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewCronjobHandler(decoder, ptm))
 		case daemonsets:
-			handlers = append(handlers, pkghandlers.NewDaemonSetHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewDaemonSetHandler(decoder, ptm))
 		case deployments:
-			handlers = append(handlers, pkghandlers.NewDeploymentHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewDeploymentHandler(decoder, ptm))
 		case jobs:
-			handlers = append(handlers, pkghandlers.NewJobHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewJobHandler(decoder, ptm))
 		case pods:
-			handlers = append(handlers, pkghandlers.NewPodHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewPodHandler(decoder, ptm))
 		case replicasets:
-			handlers = append(handlers, pkghandlers.NewReplicaSetHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewReplicaSetHandler(decoder, ptm))
 		case replicationcontrollers:
-			handlers = append(handlers, pkghandlers.NewReplicationControllerHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewReplicationControllerHandler(decoder, ptm))
 		case statefulsets:
-			handlers = append(handlers, pkghandlers.NewStatefulSetHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewStatefulSetHandler(decoder, ptm))
 		default:
 			unexpected = append(unexpected, resource)
 		}

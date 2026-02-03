@@ -3,7 +3,6 @@ package handlers
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,8 +16,7 @@ func TestDaemonSetHandler(t *testing.T) {
 	scheme := runtime.NewScheme()
 	decoder := admission.NewDecoder(scheme)
 
-	handler := NewDaemonSetHandler(mutator)
-	assert.NoError(t, handler.InjectDecoder(decoder))
+	handler := NewDaemonSetHandler(decoder, mutator)
 
 	d := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{

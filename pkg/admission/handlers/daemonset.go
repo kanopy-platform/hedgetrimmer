@@ -14,13 +14,13 @@ import (
 )
 
 type DaemonSetHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewDaemonSetHandler(ptm admission.PodTemplateSpecMutator) *DaemonSetHandler {
-	return &DaemonSetHandler{ptm: ptm}
+func NewDaemonSetHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *DaemonSetHandler {
+	return &DaemonSetHandler{decoder: decoder, ptm: ptm}
 }
 
 func (d *DaemonSetHandler) Kind() string {

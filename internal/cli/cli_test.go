@@ -5,11 +5,15 @@ import (
 
 	"github.com/kanopy-platform/hedgetrimmer/pkg/mutators"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func TestGetHandlers(t *testing.T) {
 	t.Parallel()
 	mutator := mutators.NewPodTemplateSpec()
+	scheme := runtime.NewScheme()
+	decoder := admission.NewDecoder(scheme)
 
 	tests := []struct {
 		msg       string
@@ -50,7 +54,7 @@ func TestGetHandlers(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		handlers, err := getHandlers(test.resources, mutator)
+		handlers, err := getHandlers(test.resources, decoder, mutator)
 		assert.Len(t, handlers, test.wantLen, test.msg)
 		assert.Equal(t, test.wantError, err != nil, test.msg)
 	}

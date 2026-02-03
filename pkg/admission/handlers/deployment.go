@@ -13,13 +13,13 @@ import (
 )
 
 type DeploymentHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewDeploymentHandler(ptm admission.PodTemplateSpecMutator) *DeploymentHandler {
-	return &DeploymentHandler{ptm: ptm}
+func NewDeploymentHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *DeploymentHandler {
+	return &DeploymentHandler{decoder: decoder, ptm: ptm}
 }
 
 func (d *DeploymentHandler) Kind() string { return "Deployment" }

@@ -22,8 +22,7 @@ func TestPodHandler(t *testing.T) {
 	scheme := runtime.NewScheme()
 	decoder := admission.NewDecoder(scheme)
 
-	handler := NewPodHandler(mutator)
-	assert.NoError(t, handler.InjectDecoder(decoder))
+	handler := NewPodHandler(decoder, mutator)
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
