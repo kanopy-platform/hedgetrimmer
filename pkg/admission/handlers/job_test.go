@@ -7,6 +7,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func TestJobHandler(t *testing.T) {
@@ -14,7 +15,7 @@ func TestJobHandler(t *testing.T) {
 	mutator := &MockMutator{}
 
 	scheme := runtime.NewScheme()
-	decoder := assertDecoder(t, scheme)
+	decoder := admission.NewDecoder(scheme)
 
 	handler := NewJobHandler(mutator)
 	assert.NoError(t, handler.InjectDecoder(decoder))

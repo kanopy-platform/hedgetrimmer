@@ -7,6 +7,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func TestStatefulSetHandler(t *testing.T) {
@@ -14,7 +15,7 @@ func TestStatefulSetHandler(t *testing.T) {
 	mm := MockMutator{}
 
 	scheme := runtime.NewScheme()
-	decoder := assertDecoder(t, scheme)
+	decoder := admission.NewDecoder(scheme)
 
 	handler := NewStatefulSetHandler(&mm)
 

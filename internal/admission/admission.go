@@ -16,7 +16,7 @@ type AdmissionHandler interface {
 	admission.Handler
 	Kind() string
 	VersionSupported(v string) bool
-	InjectDecoder(*admission.Decoder) error
+	InjectDecoder(admission.Decoder) error
 }
 
 type OptionsFunc func(*Router) error
@@ -55,7 +55,7 @@ func (r *Router) SetupWithManager(m manager.Manager) {
 	m.GetWebhookServer().Register("/mutate", &webhook.Admission{Handler: r})
 }
 
-func (r *Router) InjectDecoder(d *admission.Decoder) error {
+func (r *Router) InjectDecoder(d admission.Decoder) error {
 	if d == nil {
 		return fmt.Errorf("decoder cannot be nil")
 	}

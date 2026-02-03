@@ -29,6 +29,8 @@ import (
 	k8szap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var scheme = runtime.NewScheme()
@@ -104,15 +106,18 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	ctx := signals.SetupSignalHandler()
 
 	mgr, err := manager.New(cfg, manager.Options{
-		Scheme:                 scheme,
-		Host:                   "0.0.0.0",
-		Port:                   viper.GetInt("webhook-listen-port"),
-		CertDir:                viper.GetString("webhook-certs-dir"),
-		MetricsBindAddress:     fmt.Sprintf("0.0.0.0:%d", viper.GetInt("metrics-listen-port")),
+		Scheme: scheme,
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Host:    "0.0.0.0",
+			Port:    viper.GetInt("webhook-listen-port"),
+			CertDir: viper.GetString("webhook-certs-dir"),
+		}),
+		Metrics: metricsserver.Options{
+			BindAddress: fmt.Sprintf("0.0.0.0:%d", viper.GetInt("metrics-listen-port")),
+		},
 		HealthProbeBindAddress: ":8080",
 		LeaderElection:         true,
 		LeaderElectionID:       "hedgetrimmer",
-		DryRunClient:           dryRun,
 	})
 
 	if err != nil {
@@ -131,9 +136,12 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(cs, 1*time.Minute)
 
 	lri := informerFactory.Core().V1().LimitRanges()
-	lri.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, err = lri.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(new interface{}) {},
 	})
+	if err != nil {
+		return err
+	}
 
 	informerFactory.Start(wait.NeverStop)
 	informerFactory.WaitForCacheSync(wait.NeverStop)

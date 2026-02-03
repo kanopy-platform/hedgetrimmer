@@ -11,8 +11,7 @@ import (
 func TestDefaultDecoderInjector(t *testing.T) {
 	d := &DefaultDecoderInjector{}
 	scheme := runtime.NewScheme()
-	decoder, err := admission.NewDecoder(scheme)
-	assert.NoError(t, err)
+	decoder := admission.NewDecoder(scheme)
 	assert.NoError(t, d.InjectDecoder(decoder))
 }
 
