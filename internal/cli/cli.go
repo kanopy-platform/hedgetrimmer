@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	webhookadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var scheme = runtime.NewScheme()
@@ -162,6 +163,10 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		admission.WithAdmissionHandlers(handlers...),
 	)
 	if err != nil {
+		return err
+	}
+
+	if err := admissionRouter.InjectDecoder(webhookadmission.NewDecoder(mgr.GetScheme())); err != nil {
 		return err
 	}
 
