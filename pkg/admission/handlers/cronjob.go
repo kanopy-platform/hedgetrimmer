@@ -14,13 +14,13 @@ import (
 )
 
 type CronjobHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewCronjobHandler(ptm admission.PodTemplateSpecMutator) *CronjobHandler {
-	return &CronjobHandler{ptm: ptm}
+func NewCronjobHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *CronjobHandler {
+	return &CronjobHandler{decoder: decoder, ptm: ptm}
 }
 
 func (c *CronjobHandler) Kind() string {

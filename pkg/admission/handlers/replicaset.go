@@ -14,13 +14,13 @@ import (
 )
 
 type ReplicaSetHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewReplicaSetHandler(ptm admission.PodTemplateSpecMutator) *ReplicaSetHandler {
-	return &ReplicaSetHandler{ptm: ptm}
+func NewReplicaSetHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *ReplicaSetHandler {
+	return &ReplicaSetHandler{decoder: decoder, ptm: ptm}
 }
 
 func (r *ReplicaSetHandler) Kind() string {

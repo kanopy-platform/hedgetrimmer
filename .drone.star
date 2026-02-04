@@ -112,7 +112,7 @@ def build(name, arch, tag, publish):
 def test_step():
     return {
        "name": "test",
-       "image": "golangci/golangci-lint:v1.49.0",
+       "image": "golangci/golangci-lint:v2.5",
        "pull": "always",
        "commands": [ "make test" ]
     }
@@ -120,7 +120,7 @@ def test_step():
 def license_step():
     return {
        "name": "license-check",
-       "image": "public.ecr.aws/kanopy/licensed-go:3.7.3",
+       "image": "public.ecr.aws/kanopy/licensed-go:4.0.4-0.3.0",
        "commands": ["licensed cache", "licensed status"]
     }
     

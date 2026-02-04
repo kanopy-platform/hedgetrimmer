@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -82,8 +83,10 @@ func TestIntegrationSetupWithManager(t *testing.T) {
 	assert.NoError(t, err)
 	m, err := manager.New(cfg, manager.Options{
 		Scheme: &runtime.Scheme{},
-		Port:   8084,
-		Host:   "127.0.0.1",
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port: 8084,
+			Host: "127.0.0.1",
+		}),
 	})
 
 	assert.NoError(t, err)
@@ -109,14 +112,12 @@ func TestWithAdmissionHandlers_AddDuplciateHandler(t *testing.T) {
 func TestAllowObjects(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	decoder, err := admission.NewDecoder(scheme)
-	assert.NoError(t, err)
+	decoder := admission.NewDecoder(scheme)
 	mlr := &MockLimitRanger{
 		lrc: &limitrange.Config{},
 	}
-	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{}, &MockReplicaSetHandler{}))
+	r, err := NewRouter(mlr, WithAdmissionHandlers(&MockDeploymentHandler{MockHandler{decoder: decoder}}, &MockReplicaSetHandler{MockHandler{decoder: decoder}}))
 	assert.NoError(t, err)
-	assert.NoError(t, r.InjectDecoder(decoder))
 
 	tests := []struct {
 		object      runtime.Object
@@ -185,16 +186,11 @@ func TestAllowObjects(t *testing.T) {
 }
 
 type MockHandler struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 func (m *MockHandler) VersionSupported(v string) bool {
 	return true
-}
-
-func (m *MockHandler) InjectDecoder(dec *admission.Decoder) error {
-	m.decoder = dec
-	return nil
 }
 
 func (m *MockHandler) PatchResponse(raw []byte, v interface{}) admission.Response {

@@ -13,13 +13,13 @@ import (
 )
 
 type StatefulSetHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewStatefulSetHandler(ptm admission.PodTemplateSpecMutator) *StatefulSetHandler {
-	return &StatefulSetHandler{ptm: ptm}
+func NewStatefulSetHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *StatefulSetHandler {
+	return &StatefulSetHandler{decoder: decoder, ptm: ptm}
 }
 
 func (sts *StatefulSetHandler) Kind() string { return "StatefulSet" }

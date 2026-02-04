@@ -29,6 +29,9 @@ import (
 	k8szap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	webhookadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var scheme = runtime.NewScheme()
@@ -104,15 +107,18 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	ctx := signals.SetupSignalHandler()
 
 	mgr, err := manager.New(cfg, manager.Options{
-		Scheme:                 scheme,
-		Host:                   "0.0.0.0",
-		Port:                   viper.GetInt("webhook-listen-port"),
-		CertDir:                viper.GetString("webhook-certs-dir"),
-		MetricsBindAddress:     fmt.Sprintf("0.0.0.0:%d", viper.GetInt("metrics-listen-port")),
+		Scheme: scheme,
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Host:    "0.0.0.0",
+			Port:    viper.GetInt("webhook-listen-port"),
+			CertDir: viper.GetString("webhook-certs-dir"),
+		}),
+		Metrics: metricsserver.Options{
+			BindAddress: fmt.Sprintf("0.0.0.0:%d", viper.GetInt("metrics-listen-port")),
+		},
 		HealthProbeBindAddress: ":8080",
 		LeaderElection:         true,
 		LeaderElectionID:       "hedgetrimmer",
-		DryRunClient:           dryRun,
 	})
 
 	if err != nil {
@@ -131,9 +137,12 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(cs, 1*time.Minute)
 
 	lri := informerFactory.Core().V1().LimitRanges()
-	lri.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, err = lri.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(new interface{}) {},
 	})
+	if err != nil {
+		return err
+	}
 
 	informerFactory.Start(wait.NeverStop)
 	informerFactory.WaitForCacheSync(wait.NeverStop)
@@ -145,7 +154,9 @@ func (c *RootCommand) runE(cmd *cobra.Command, args []string) error {
 		mutators.WithDryRun(viper.GetBool("dry-run")),
 	)
 
-	handlers, err := getHandlers(viper.GetStringSlice("resources"), ptm)
+	decoder := webhookadmission.NewDecoder(mgr.GetScheme())
+
+	handlers, err := getHandlers(viper.GetStringSlice("resources"), decoder, ptm)
 	if err != nil {
 		return err
 	}
@@ -173,7 +184,7 @@ func configureHealthChecks(mgr manager.Manager) error {
 	return nil
 }
 
-func getHandlers(resources []string, ptm pkgadmission.PodTemplateSpecMutator) ([]admission.AdmissionHandler, error) {
+func getHandlers(resources []string, decoder webhookadmission.Decoder, ptm pkgadmission.PodTemplateSpecMutator) ([]admission.AdmissionHandler, error) {
 	var handlers []admission.AdmissionHandler
 	var unexpected []string
 
@@ -185,21 +196,21 @@ func getHandlers(resources []string, ptm pkgadmission.PodTemplateSpecMutator) ([
 	for resource := range dedupedResources {
 		switch resource {
 		case cronjobs:
-			handlers = append(handlers, pkghandlers.NewCronjobHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewCronjobHandler(decoder, ptm))
 		case daemonsets:
-			handlers = append(handlers, pkghandlers.NewDaemonSetHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewDaemonSetHandler(decoder, ptm))
 		case deployments:
-			handlers = append(handlers, pkghandlers.NewDeploymentHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewDeploymentHandler(decoder, ptm))
 		case jobs:
-			handlers = append(handlers, pkghandlers.NewJobHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewJobHandler(decoder, ptm))
 		case pods:
-			handlers = append(handlers, pkghandlers.NewPodHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewPodHandler(decoder, ptm))
 		case replicasets:
-			handlers = append(handlers, pkghandlers.NewReplicaSetHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewReplicaSetHandler(decoder, ptm))
 		case replicationcontrollers:
-			handlers = append(handlers, pkghandlers.NewReplicationControllerHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewReplicationControllerHandler(decoder, ptm))
 		case statefulsets:
-			handlers = append(handlers, pkghandlers.NewStatefulSetHandler(ptm))
+			handlers = append(handlers, pkghandlers.NewStatefulSetHandler(decoder, ptm))
 		default:
 			unexpected = append(unexpected, resource)
 		}

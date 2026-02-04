@@ -32,12 +32,6 @@ func (mm *MockMutator) Mutate(ctx context.Context, inputs corev1.PodTemplateSpec
 	return mm.spec, mm.err
 }
 
-func assertDecoder(t *testing.T, s *runtime.Scheme) *admission.Decoder {
-	decoder, err := admission.NewDecoder(s)
-	assert.NoError(t, err)
-	return decoder
-}
-
 func testHandler(t *testing.T, in runtime.Object, mm *MockMutator, handler admission.Handler) {
 	bytes, err := json.Marshal(in)
 	assert.NoError(t, err)

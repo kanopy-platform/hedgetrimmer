@@ -15,13 +15,13 @@ import (
 )
 
 type PodHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewPodHandler(ptm admission.PodTemplateSpecMutator) *PodHandler {
-	return &PodHandler{ptm: ptm}
+func NewPodHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *PodHandler {
+	return &PodHandler{decoder: decoder, ptm: ptm}
 }
 
 func (p *PodHandler) Kind() string {

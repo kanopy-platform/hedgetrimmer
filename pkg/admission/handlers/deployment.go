@@ -13,13 +13,13 @@ import (
 )
 
 type DeploymentHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewDeploymentHandler(ptm admission.PodTemplateSpecMutator) *DeploymentHandler {
-	return &DeploymentHandler{ptm: ptm}
+func NewDeploymentHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *DeploymentHandler {
+	return &DeploymentHandler{decoder: decoder, ptm: ptm}
 }
 
 func (d *DeploymentHandler) Kind() string { return "Deployment" }
@@ -35,6 +35,7 @@ func (d *DeploymentHandler) Handle(ctx context.Context, req kadmission.Request) 
 	}
 
 	out := &appsv1.Deployment{}
+
 	if err := d.decoder.Decode(req, out); err != nil {
 		log.Error(err, fmt.Sprintf("failed to decode deployment requests: %s", req.Name))
 		return kadmission.Errored(http.StatusBadRequest, err)

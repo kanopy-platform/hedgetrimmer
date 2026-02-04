@@ -3,10 +3,10 @@ package handlers
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func TestReplicaSetHandler(t *testing.T) {
@@ -14,10 +14,9 @@ func TestReplicaSetHandler(t *testing.T) {
 	mutator := &MockMutator{}
 
 	scheme := runtime.NewScheme()
-	decoder := assertDecoder(t, scheme)
+	decoder := admission.NewDecoder(scheme)
 
-	handler := NewReplicaSetHandler(mutator)
-	assert.NoError(t, handler.InjectDecoder(decoder))
+	handler := NewReplicaSetHandler(decoder, mutator)
 
 	r := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{

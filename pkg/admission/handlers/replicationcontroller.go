@@ -14,13 +14,13 @@ import (
 )
 
 type ReplicationControllerHandler struct {
-	DefaultDecoderInjector
 	AllVersionSupporter
-	ptm admission.PodTemplateSpecMutator
+	decoder kadmission.Decoder
+	ptm     admission.PodTemplateSpecMutator
 }
 
-func NewReplicationControllerHandler(ptm admission.PodTemplateSpecMutator) *ReplicationControllerHandler {
-	return &ReplicationControllerHandler{ptm: ptm}
+func NewReplicationControllerHandler(decoder kadmission.Decoder, ptm admission.PodTemplateSpecMutator) *ReplicationControllerHandler {
+	return &ReplicationControllerHandler{decoder: decoder, ptm: ptm}
 }
 
 func (r *ReplicationControllerHandler) Kind() string {
